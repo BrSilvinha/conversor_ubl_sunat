@@ -1,4 +1,4 @@
-# sunat_integration/client.py
+# sunat_integration/client.py - VERSIÓN COMPLETA
 import os
 import base64
 import zipfile

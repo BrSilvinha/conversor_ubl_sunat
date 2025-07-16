@@ -1,4 +1,4 @@
-# api/views.py - VERSIÓN CON AUTENTICACIÓN CORREGIDA
+# api/views.py - VERSIÓN CORREGIDA COMPLETA
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -115,8 +115,11 @@ def create_invoice_test_scenarios(request):
                 observations='BOLETA DE PRUEBA - TODOS LOS ESCENARIOS'
             )
             
-            # Línea 1: Producto gravado (S)
-            InvoiceLine.objects.create(
+            # Línea 1: Producto gravado (S) - Calcular montos manualmente
+            line1_value = Decimal('2.00') * Decimal('100.00')  # 200.00
+            line1_igv = line1_value * Decimal('0.18')  # 36.00
+            
+            line1 = InvoiceLine.objects.create(
                 invoice=invoice,
                 line_number=1,
                 product=products[0],
@@ -125,12 +128,16 @@ def create_invoice_test_scenarios(request):
                 quantity=Decimal('2.00'),
                 unit_code='NIU',
                 unit_price=Decimal('100.00'),
+                line_extension_amount=line1_value,
                 tax_category_code='S',
-                igv_rate=Decimal('18.00')
+                igv_rate=Decimal('18.00'),
+                igv_amount=line1_igv
             )
             
             # Línea 2: Producto exonerado (E)
-            InvoiceLine.objects.create(
+            line2_value = Decimal('1.00') * Decimal('50.00')  # 50.00
+            
+            line2 = InvoiceLine.objects.create(
                 invoice=invoice,
                 line_number=2,
                 product=products[1],
@@ -139,12 +146,15 @@ def create_invoice_test_scenarios(request):
                 quantity=Decimal('1.00'),
                 unit_code='NIU',
                 unit_price=Decimal('50.00'),
+                line_extension_amount=line2_value,
                 tax_category_code='E',
-                tax_exemption_reason_code='20'  # Transferencias gratuitas
+                tax_exemption_reason_code='20',  # Transferencias gratuitas
+                igv_rate=Decimal('0.00'),
+                igv_amount=Decimal('0.00')
             )
             
             # Línea 3: Producto gratuito (Z)
-            InvoiceLine.objects.create(
+            line3 = InvoiceLine.objects.create(
                 invoice=invoice,
                 line_number=3,
                 product=products[2],
@@ -153,12 +163,18 @@ def create_invoice_test_scenarios(request):
                 quantity=Decimal('1.00'),
                 unit_code='NIU',
                 unit_price=Decimal('0.00'),
+                line_extension_amount=Decimal('0.00'),  # Gratuito = 0
                 reference_price=Decimal('30.00'),  # Precio de referencia
-                tax_category_code='Z'
+                tax_category_code='Z',
+                igv_rate=Decimal('0.00'),
+                igv_amount=Decimal('0.00')
             )
             
             # Línea 4: Servicio con percepción
-            InvoiceLine.objects.create(
+            line4_value = Decimal('1.00') * Decimal('1000.00')  # 1000.00
+            line4_igv = line4_value * Decimal('0.18')  # 180.00
+            
+            line4 = InvoiceLine.objects.create(
                 invoice=invoice,
                 line_number=4,
                 product=products[3],
@@ -167,8 +183,10 @@ def create_invoice_test_scenarios(request):
                 quantity=Decimal('1.00'),
                 unit_code='ZZ',
                 unit_price=Decimal('1000.00'),
+                line_extension_amount=line4_value,
                 tax_category_code='S',
-                igv_rate=Decimal('18.00')
+                igv_rate=Decimal('18.00'),
+                igv_amount=line4_igv
             )
             
             # Configurar percepción (2% sobre servicios)
@@ -652,4 +670,3 @@ def test_sunat_connection(request):
             'status': 'error',
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    

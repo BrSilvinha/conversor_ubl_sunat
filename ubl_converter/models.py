@@ -1,4 +1,4 @@
-# ubl_converter/models.py
+# ubl_converter/models.py - VERSIÓN CORREGIDA COMPLETA
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
@@ -174,29 +174,31 @@ class InvoiceLine(TimeStampedModel):
     # Valores de referencia para gratuitos
     reference_price = models.DecimalField(max_digits=12, decimal_places=6, default=0, verbose_name="Precio de Referencia")
     
-    # Totales de línea
-    line_extension_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Valor de Venta")
+    # Totales de línea - AHORA CON NULL=TRUE PARA EVITAR ERROR
+    line_extension_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Valor de Venta")
     
     # Impuestos
     tax_category_code = models.CharField(max_length=1, choices=TAX_CATEGORY_CHOICES, default='S')
     tax_exemption_reason_code = models.CharField(max_length=2, blank=True, null=True)
     
-    # Montos de impuestos
+    # Montos de impuestos - AHORA CON NULL=TRUE
     igv_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, verbose_name="Tasa IGV %")
-    igv_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Monto IGV")
+    igv_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, verbose_name="Monto IGV")
     
     isc_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="Tasa ISC %")
-    isc_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Monto ISC")
+    isc_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, verbose_name="Monto ISC")
     
     icbper_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="Tasa ICBPER")
-    icbper_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Monto ICBPER")
+    icbper_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, verbose_name="Monto ICBPER")
     
     def calculate_amounts(self):
         """Calcula los montos de la línea"""
         # Valor de venta (sin impuestos)
         if self.tax_category_code == 'Z':  # Gratuito
             self.line_extension_amount = Decimal('0.00')
-            self.unit_price = Decimal('0.00')
+            if not self.reference_price:
+                self.reference_price = self.unit_price  # Usar precio como referencia si no se especifica
+                self.unit_price = Decimal('0.00')
         else:
             self.line_extension_amount = self.quantity * self.unit_price
         
@@ -211,20 +213,50 @@ class InvoiceLine(TimeStampedModel):
         if self.isc_rate > 0:
             base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * self.reference_price)
             self.isc_amount = base_amount * (self.isc_rate / 100)
+        else:
+            self.isc_amount = Decimal('0.00')
         
         # ICBPER (Impuesto a las bolsas plásticas)
         if self.icbper_rate > 0:
             self.icbper_amount = self.quantity * self.icbper_rate
-        
-        self.save()
+        else:
+            self.icbper_amount = Decimal('0.00')
 
     def save(self, *args, **kwargs):
-        # Auto-calcular montos antes de guardar
-        if self.pk is None or kwargs.get('calculate', True):
-            super().save(*args, **kwargs)
-            self.calculate_amounts()
-        else:
-            super().save(*args, **kwargs)
+        # Calcular line_extension_amount si no se proporciona
+        if self.line_extension_amount is None:
+            if self.tax_category_code == 'Z':  # Gratuito
+                self.line_extension_amount = Decimal('0.00')
+                if not self.reference_price:
+                    self.reference_price = self.unit_price
+                    self.unit_price = Decimal('0.00')
+            else:
+                self.line_extension_amount = self.quantity * self.unit_price
+        
+        # Calcular IGV si no se proporciona
+        if self.igv_amount is None:
+            if self.tax_category_code == 'S':  # Solo gravado paga IGV
+                base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * (self.reference_price or Decimal('0.00')))
+                self.igv_amount = base_amount * (self.igv_rate / 100)
+            else:
+                self.igv_amount = Decimal('0.00')
+        
+        # Calcular ISC si aplica
+        if self.isc_amount is None:
+            if self.isc_rate > 0:
+                base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * (self.reference_price or Decimal('0.00')))
+                self.isc_amount = base_amount * (self.isc_rate / 100)
+            else:
+                self.isc_amount = Decimal('0.00')
+        
+        # Calcular ICBPER si aplica
+        if self.icbper_amount is None:
+            if self.icbper_rate > 0:
+                self.icbper_amount = self.quantity * self.icbper_rate
+            else:
+                self.icbper_amount = Decimal('0.00')
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Línea {self.line_number}: {self.description}"

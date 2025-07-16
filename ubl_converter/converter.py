@@ -1,4 +1,4 @@
-# ubl_converter/converter.py - VERSIÓN CORREGIDA
+# ubl_converter/converter.py - VERSIÓN CORREGIDA PARA EVITAR ATRIBUTOS DUPLICADOS
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
@@ -19,12 +19,17 @@ class UBLConverter:
         self.version = settings.UBL_CONFIG['VERSION']
         self.customization_id = settings.UBL_CONFIG['CUSTOMIZATION_ID']
         
-        # Registrar namespaces
+        # Registrar namespaces sin duplicados
+        registered_namespaces = {}
         for prefix, uri in self.namespaces.items():
             if prefix.startswith('xmlns:'):
-                ET.register_namespace(prefix[6:], uri)
-            elif prefix == 'xmlns':
+                ns_prefix = prefix[6:]  # Remover 'xmlns:'
+                if ns_prefix not in registered_namespaces:
+                    ET.register_namespace(ns_prefix, uri)
+                    registered_namespaces[ns_prefix] = uri
+            elif prefix == 'xmlns' and '' not in registered_namespaces:
                 ET.register_namespace('', uri)
+                registered_namespaces[''] = uri
     
     def convert_invoice_to_xml(self, invoice):
         """Convierte una factura/boleta a XML UBL 2.1"""
@@ -34,20 +39,31 @@ class UBLConverter:
             # Determinar el tipo de documento
             if invoice.document_type == '01':
                 root_element = 'Invoice'
+                default_ns = 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2'
             elif invoice.document_type == '03':
                 root_element = 'Invoice'  # Boleta también usa Invoice en UBL
+                default_ns = 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2'
             else:
                 raise ValueError(f"Tipo de documento no soportado: {invoice.document_type}")
             
-            # Crear elemento raíz
-            root = ET.Element(root_element)
+            # Crear elemento raíz con namespace principal
+            root = ET.Element(f"{{{default_ns}}}{root_element}")
             
-            # Agregar namespaces
-            for prefix, uri in self.namespaces.items():
-                if prefix == 'xmlns':
-                    root.set(prefix, uri)
-                else:
-                    root.set(prefix, uri)
+            # Agregar namespaces sin duplicados - VERSIÓN CORREGIDA
+            namespace_map = {
+                'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+                'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+                'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
+                'xmlns:ds': 'http://www.w3.org/2000/09/xmldsig#',
+                'xmlns:ext': 'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2',
+                'xmlns:sac': 'urn:sunat:names:specification:ubl:peru:schema:xsd:SunatAggregateComponents-1',
+                'xmlns:qdt': 'urn:oasis:names:specification:ubl:schema:xsd:QualifiedDatatypes-2',
+                'xmlns:udt': 'urn:un:unece:uncefact:data:specification:UnqualifiedDataTypesSchemaModule:2'
+            }
+            
+            # Aplicar namespaces al elemento raíz
+            for prefix, uri in namespace_map.items():
+                root.set(prefix, uri)
             
             # UBL Extensions (para firma digital)
             self._add_ubl_extensions(root)
@@ -86,7 +102,8 @@ class UBLConverter:
         ubl_ext = ET.SubElement(ext_elem, '{urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2}UBLExtension')
         ext_content = ET.SubElement(ubl_ext, '{urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2}ExtensionContent')
         
-        # Aquí iría la información adicional SUNAT
+        # Información adicional SUNAT
+        additional_info = ET.SubElement(ext_content, '{urn:sunat:names:specification:ubl:peru:schema:xsd:SunatAggregateComponents-1}AdditionalInformation')
         
         # Extensión para firma digital (se agregará después del firmado)
         ubl_ext_sign = ET.SubElement(ext_elem, '{urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2}UBLExtension')
@@ -288,21 +305,21 @@ class UBLConverter:
         tax_total = ET.SubElement(invoice_line, '{urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2}TaxTotal')
         
         # Monto total de impuestos de la línea
-        total_tax_amount = line.igv_amount + line.isc_amount + line.icbper_amount
+        total_tax_amount = (line.igv_amount or 0) + (line.isc_amount or 0) + (line.icbper_amount or 0)
         tax_amount = ET.SubElement(tax_total, '{urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2}TaxAmount')
         tax_amount.set('currencyID', currency_code)
         tax_amount.text = f"{total_tax_amount:.2f}"
         
         # IGV
-        if line.igv_amount > 0 or line.tax_category_code in ['S', 'E', 'O']:
-            self._add_tax_subtotal(tax_total, line, 'IGV', '1000', line.igv_amount, line.igv_rate, currency_code)
+        if (line.igv_amount and line.igv_amount > 0) or line.tax_category_code in ['S', 'E', 'O']:
+            self._add_tax_subtotal(tax_total, line, 'IGV', '1000', line.igv_amount or 0, line.igv_rate, currency_code)
         
         # ISC
-        if line.isc_amount > 0:
+        if line.isc_amount and line.isc_amount > 0:
             self._add_tax_subtotal(tax_total, line, 'ISC', '2000', line.isc_amount, line.isc_rate, currency_code)
         
         # ICBPER
-        if line.icbper_amount > 0:
+        if line.icbper_amount and line.icbper_amount > 0:
             self._add_tax_subtotal(tax_total, line, 'ICBPER', '7152', line.icbper_amount, line.icbper_rate, currency_code)
     
     def _add_tax_subtotal(self, tax_total, line, tax_name, tax_id, amount, rate, currency_code):
@@ -318,7 +335,7 @@ class UBLConverter:
             taxable_amount.text = f"{line.quantity:.2f}"
         else:
             # Para IGV e ISC la base es el valor de venta
-            base = line.line_extension_amount if line.tax_category_code != 'Z' else (line.quantity * line.reference_price)
+            base = line.line_extension_amount if line.tax_category_code != 'Z' else (line.quantity * (line.reference_price or 0))
             taxable_amount.text = f"{base:.2f}"
         
         # Monto del impuesto
