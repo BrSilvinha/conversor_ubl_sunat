@@ -1,7 +1,8 @@
-# digital_signature/signer.py
+# digital_signature/signer.py - VERSIÓN CORREGIDA
 import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from datetime import datetime
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography import x509
@@ -48,7 +49,6 @@ class XMLDigitalSigner:
             self.certificate = certificate
             
             # Validar que el certificado no esté expirado
-            from datetime import datetime
             if certificate.not_valid_after < datetime.now():
                 raise ValueError("El certificado ha expirado")
             
@@ -226,7 +226,6 @@ class XMLDigitalSigner:
             certificate = x509.load_der_x509_certificate(cert_der, default_backend())
             
             # Verificar que el certificado no esté expirado
-            from datetime import datetime
             if certificate.not_valid_after < datetime.now():
                 return False, "El certificado ha expirado"
             

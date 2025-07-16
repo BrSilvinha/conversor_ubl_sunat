@@ -1,4 +1,4 @@
-# ubl_converter/converter.py
+# ubl_converter/converter.py - VERSIÓN CORREGIDA
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
@@ -234,6 +234,9 @@ class UBLConverter:
             # Cantidad
             quantity_elem = ET.SubElement(invoice_line, '{urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2}InvoicedQuantity')
             quantity_elem.text = str(line.quantity)
+            quantity_elem.set('unitCode', line.unit_code)
+            quantity_elem.set('unitCodeListID', 'UN/ECE rec 20')
+            quantity_elem.set('unitCodeListAgencyID', '6')
             
             # Valor de línea
             line_amount = ET.SubElement(invoice_line, '{urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2}LineExtensionAmount')
@@ -492,7 +495,4 @@ class UBLConverter:
             
         except Exception as e:
             logger.error(f"Error creando ZIP: {str(e)}")
-            raiseset('unitCode', line.unit_code)
-            quantity_elem.set('unitCodeListID', 'UN/ECE rec 20')
-            quantity_elem.set('unitCodeListAgencyID', '6')
             raise

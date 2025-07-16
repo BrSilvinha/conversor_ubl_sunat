@@ -6,6 +6,7 @@ import tempfile
 from django.conf import settings
 from zeep import Client, Settings as ZeepSettings
 from zeep.wsse.username import UsernameToken
+from zeep.exceptions import Fault, TransportError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -102,11 +103,32 @@ class SUNATWebServiceClient:
             else:
                 raise Exception("No se recibió respuesta de SUNAT")
                 
+        except Fault as e:
+            # Error SOAP específico
+            error_msg = f"Error SOAP de SUNAT: {str(e)}"
+            logger.error(f"Error SOAP enviando documento {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'soap_fault',
+                'filename': filename
+            }
+        except TransportError as e:
+            # Error de transporte (conexión, autenticación, etc.)
+            error_msg = f"Error de conexión con SUNAT: {str(e)}"
+            logger.error(f"Error de transporte enviando documento {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'transport_error',
+                'filename': filename
+            }
         except Exception as e:
             logger.error(f"Error enviando documento {filename}: {str(e)}")
             return {
                 'status': 'error',
                 'error_message': str(e),
+                'error_type': 'general_error',
                 'filename': filename
             }
     
@@ -149,11 +171,30 @@ class SUNATWebServiceClient:
             else:
                 raise Exception("No se recibió ticket de SUNAT")
                 
+        except Fault as e:
+            error_msg = f"Error SOAP de SUNAT: {str(e)}"
+            logger.error(f"Error SOAP enviando resumen {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'soap_fault',
+                'filename': filename
+            }
+        except TransportError as e:
+            error_msg = f"Error de conexión con SUNAT: {str(e)}"
+            logger.error(f"Error de transporte enviando resumen {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'transport_error',
+                'filename': filename
+            }
         except Exception as e:
             logger.error(f"Error enviando resumen {filename}: {str(e)}")
             return {
                 'status': 'error',
                 'error_message': str(e),
+                'error_type': 'general_error',
                 'filename': filename
             }
     
@@ -389,13 +430,33 @@ class SUNATWebServiceClient:
                 'status': 'success',
                 'message': 'Conexión exitosa con SUNAT',
                 'operations': operations,
-                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
+                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
+                'wsdl_url': self.wsdl_url
             }
             
+        except TransportError as e:
+            # Error de autenticación o conexión
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                logger.warning(f"Error de autenticación SUNAT: {str(e)}")
+                return {
+                    'status': 'warning',
+                    'message': 'Error de autenticación con SUNAT (normal con credenciales de prueba)',
+                    'error_details': error_msg,
+                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
+                    'suggestion': 'Verifica las credenciales o usa credenciales válidas para producción'
+                }
+            else:
+                logger.error(f"Error de conexión SUNAT: {str(e)}")
+                return {
+                    'status': 'error',
+                    'message': f'Error de conexión: {str(e)}',
+                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
+                }
         except Exception as e:
             logger.error(f"Error probando conexión: {str(e)}")
             return {
                 'status': 'error',
-                'message': f'Error de conexión: {str(e)}',
+                'message': f'Error inesperado: {str(e)}',
                 'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
             }
