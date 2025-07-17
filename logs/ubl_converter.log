@@ -1,0 +1,4 @@
+INFO 2025-07-17 12:00:21,862 converter 30440 21720 Iniciando conversión UBL para 23022479065-03-B001-00000003
+INFO 2025-07-17 12:00:21,886 converter 30440 21720 Conversión UBL completada para 23022479065-03-B001-00000003
+INFO 2025-07-17 12:00:21,889 converter 30440 21720 XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\23022479065-03-B001-00000003.xml
+INFO 2025-07-17 12:00:27,072 converter 30440 21720 ZIP creado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\23022479065-03-B001-00000003.zip

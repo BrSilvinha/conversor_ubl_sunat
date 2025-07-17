@@ -1,4 +1,4 @@
-# api/urls.py - URLs ACTUALIZADAS CON NUEVAS FUNCIONALIDADES
+# api/urls.py - URLs ACTUALIZADAS CON VALIDACIÓN DE FIRMA
 from django.urls import path
 from . import views
 
@@ -20,6 +20,9 @@ urlpatterns = [
     path('invoice/<int:invoice_id>/check-status/', views.check_sunat_status, name='check_sunat_status'),
     path('invoice/<int:invoice_id>/process-complete/', views.process_complete_flow, name='process_complete_flow'),
     path('invoice/<int:invoice_id>/status/', views.get_invoice_status, name='get_invoice_status'),
+    
+    # Validación de firma digital
+    path('validate-signature/', views.validate_xml_signature, name='validate_signature'),
     
     # Utilidades
     path('test-sunat-connection/', views.test_sunat_connection, name='test_sunat_connection'),

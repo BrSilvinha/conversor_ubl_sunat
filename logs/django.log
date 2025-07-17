@@ -472,3 +472,7 @@ INFO 2025-07-17 12:04:31,283 basehttp 30440 26892 "GET /admin/core/customer/ HTT
 INFO 2025-07-17 12:04:31,340 basehttp 30440 26892 "GET /admin/jsi18n/ HTTP/1.1" 200 8006
 INFO 2025-07-17 12:04:33,890 basehttp 30440 26892 "GET /admin/core/customer/ HTTP/1.1" 200 15329
 INFO 2025-07-17 12:04:33,946 basehttp 30440 26892 "GET /admin/jsi18n/ HTTP/1.1" 200 8006
+INFO 2025-07-17 13:43:17,844 autoreload 30440 21808 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-17 13:43:20,488 autoreload 35048 8348 Watching for file changes with StatReloader
+INFO 2025-07-17 13:43:24,767 autoreload 35048 8348 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\urls.py changed, reloading.
+INFO 2025-07-17 13:43:25,501 autoreload 35424 23600 Watching for file changes with StatReloader

@@ -1,4 +1,4 @@
-# api/views.py - VERSIÓN FINAL VERIFICADA Y 100% FUNCIONAL
+# api/views.py - VERSIÓN FINAL VERIFICADA Y 100% FUNCIONAL - CORREGIDA
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -11,6 +11,8 @@ import os
 import logging
 from datetime import datetime, date
 from decimal import Decimal
+import urllib.parse
+import zipfile
 
 from core.models import Company, Customer, Product
 from ubl_converter.models import Invoice, InvoiceLine, InvoicePayment
@@ -45,7 +47,8 @@ def process_complete_flow(request, invoice_id):
             results['steps'].append({
                 'step': 'ubl_conversion',
                 'status': 'success',
-                'message': 'XML UBL generado exitosamente'
+                'message': 'XML UBL generado exitosamente',
+                'file_path': xml_file_path
             })
         except Exception as e:
             results['steps'].append({
@@ -80,7 +83,9 @@ def process_complete_flow(request, invoice_id):
             results['steps'].append({
                 'step': 'digital_signature',
                 'status': 'success',
-                'message': 'XML firmado exitosamente'
+                'message': 'XML firmado exitosamente',
+                'signed_file_path': signed_file_path,
+                'zip_file_path': zip_file_path
             })
         except Exception as e:
             results['steps'].append({
@@ -329,6 +334,8 @@ def test_sunat_connection(request):
             'error_details': str(e),
             'suggestion': 'Revise los logs del servidor para más detalles'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def create_invoice_test_scenarios(request):
     """
@@ -735,7 +742,7 @@ def list_documents(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_file_content(request):
-    """Obtener contenido de archivo XML, ZIP o CDR"""
+    """Obtener contenido de archivo XML, ZIP o CDR - VERSIÓN CORREGIDA"""
     try:
         file_path = request.GET.get('path')
         if not file_path:
@@ -744,31 +751,158 @@ def get_file_content(request):
                 'message': 'Parámetro path requerido'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verificar que el archivo existe y está en la carpeta media
-        full_path = os.path.join(settings.MEDIA_ROOT, file_path.replace('media/', ''))
+        logger.info(f"Intentando leer archivo: {file_path}")
+        
+        # Limpiar y normalizar el path
+        if file_path == 'true':  # Error común del frontend
+            return Response({
+                'status': 'error',
+                'message': 'Path inválido: true'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Decodificar URL y limpiar caracteres especiales
+        file_path = urllib.parse.unquote(file_path)
+        
+        # Normalizar separadores de ruta
+        file_path = file_path.replace('\\', '/')
+        
+        # Si el path es absoluto, usarlo directamente, si no, construir desde MEDIA_ROOT
+        if os.path.isabs(file_path):
+            full_path = file_path
+        else:
+            # Remover prefijo 'media/' si existe
+            if file_path.startswith('media/'):
+                file_path = file_path[6:]
+            full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        
+        logger.info(f"Ruta completa: {full_path}")
         
         if not os.path.exists(full_path):
-            raise Http404("Archivo no encontrado")
+            logger.error(f"Archivo no encontrado: {full_path}")
+            return Response({
+                'status': 'error',
+                'message': f'Archivo no encontrado: {os.path.basename(full_path)}'
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        # Leer contenido del archivo
-        if full_path.endswith('.xml'):
+        # Determinar tipo de contenido
+        file_extension = os.path.splitext(full_path)[1].lower()
+        
+        if file_extension == '.xml':
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            return HttpResponse(content, content_type='application/xml')
-        elif full_path.endswith('.zip'):
-            with open(full_path, 'rb') as f:
-                content = f.read()
-            return HttpResponse(content, content_type='application/zip')
+            
+            # Validar si está firmado
+            is_signed = '<ds:Signature' in content or 'http://www.w3.org/2000/09/xmldsig#' in content
+            
+            response_data = {
+                'status': 'success',
+                'content': content,
+                'file_type': 'xml',
+                'file_name': os.path.basename(full_path),
+                'is_signed': is_signed,
+                'size': len(content)
+            }
+            
+            return Response(response_data)
+            
+        elif file_extension == '.zip':
+            # Para archivos ZIP, mostrar contenido
+            zip_contents = []
+            
+            try:
+                with zipfile.ZipFile(full_path, 'r') as zip_ref:
+                    for file_info in zip_ref.filelist:
+                        zip_contents.append({
+                            'filename': file_info.filename,
+                            'size': file_info.file_size,
+                            'date': f"{file_info.date_time[0]}-{file_info.date_time[1]:02d}-{file_info.date_time[2]:02d}"
+                        })
+                    
+                    # Si hay XML dentro, extraer y mostrar
+                    xml_files = [f for f in zip_ref.namelist() if f.endswith('.xml')]
+                    xml_content = None
+                    
+                    if xml_files:
+                        with zip_ref.open(xml_files[0]) as xml_file:
+                            xml_content = xml_file.read().decode('utf-8')
+                
+                response_data = {
+                    'status': 'success',
+                    'file_type': 'zip',
+                    'file_name': os.path.basename(full_path),
+                    'contents': zip_contents,
+                    'xml_content': xml_content,
+                    'size': os.path.getsize(full_path)
+                }
+                
+                return Response(response_data)
+                
+            except zipfile.BadZipFile:
+                return Response({
+                    'status': 'error',
+                    'message': 'Archivo ZIP corrupto'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
         else:
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            return HttpResponse(content, content_type='text/plain')
+            # Para otros tipos de archivo, leer como texto
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                with open(full_path, 'rb') as f:
+                    content = f.read()
+                import base64
+                content = base64.b64encode(content).decode('utf-8')
+                
+            return Response({
+                'status': 'success',
+                'content': content,
+                'file_type': 'other',
+                'file_name': os.path.basename(full_path),
+                'size': os.path.getsize(full_path)
+            })
         
     except Exception as e:
         logger.error(f"Error obteniendo contenido de archivo: {str(e)}")
         return Response({
             'status': 'error',
-            'message': str(e)
+            'message': f'Error interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def validate_xml_signature(request):
+    """Valida la firma digital de un XML"""
+    try:
+        xml_content = request.data.get('xml_content')
+        if not xml_content:
+            return Response({
+                'status': 'error',
+                'message': 'Contenido XML requerido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        from digital_signature.signer import XMLDigitalSigner
+        signer = XMLDigitalSigner()
+        
+        is_valid, message = signer.verify_signature(xml_content)
+        cert_info = signer.get_certificate_info()
+        
+        return Response({
+            'status': 'success',
+            'is_valid': is_valid,
+            'message': message,
+            'certificate_info': cert_info,
+            'validation_details': {
+                'has_signature': '<ds:Signature' in xml_content,
+                'signature_algorithm': 'RSA-SHA1' if 'rsa-sha1' in xml_content else 'Unknown',
+                'canonicalization': 'C14N' if 'c14n' in xml_content else 'Unknown'
+            }
+        })
+        
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'Error validando firma: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
