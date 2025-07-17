@@ -1,28 +1,36 @@
-// static/js/ubl-manager.js - JAVASCRIPT COMPLETO PARA EL CONVERSOR UBL 2.1
+// static/js/ubl-tester.js - JAVASCRIPT COMPLETO PARA EL CONVERSOR UBL 2.1
 
 // ==================== CONFIGURACIÓN GLOBAL ====================
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';  // ✅ CORREGIDO: Sin puerto específico
 let currentInvoiceId = null;
 let currentDocuments = [];
 let lineCounter = 0;
 
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando Conversor UBL 2.1');
+    
     updateTimestamp();
     setInterval(updateTimestamp, 1000);
     
     // Establecer fecha actual
-    document.getElementById('issueDate').value = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('issueDate');
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
     
     // Agregar línea inicial
     addLine();
     
-    // Cargar documentos al cambiar a la pestaña
-    document.getElementById('documents-tab').addEventListener('shown.bs.tab', function() {
-        refreshDocuments();
-    });
+    // Evento para cargar documentos
+    const documentsTab = document.getElementById('documents-tab');
+    if (documentsTab) {
+        documentsTab.addEventListener('shown.bs.tab', function() {
+            refreshDocuments();
+        });
+    }
     
-    logMessage('Sistema iniciado. Listo para crear documentos.', 'info');
+    logMessage('✅ Sistema iniciado correctamente', 'success');
 });
 
 function updateTimestamp() {
@@ -49,6 +57,12 @@ function updateServerStatus(status) {
 function addLine() {
     lineCounter++;
     const tbody = document.getElementById('linesTableBody');
+    
+    if (!tbody) {
+        console.error('❌ No se encontró tabla de líneas');
+        return;
+    }
+    
     const row = document.createElement('tr');
     row.id = `line-${lineCounter}`;
     
@@ -78,6 +92,8 @@ function addLine() {
     
     tbody.appendChild(row);
     calculateLine(lineCounter);
+    
+    console.log(`➕ Línea ${lineCounter} agregada`);
 }
 
 function removeLine(lineId) {
@@ -85,6 +101,7 @@ function removeLine(lineId) {
     if (row) {
         row.remove();
         calculateTotals();
+        console.log(`➖ Línea ${lineId} eliminada`);
     }
 }
 
@@ -145,8 +162,6 @@ function calculateTotals() {
                     totalTaxed += value;
                     break;
                 case 'E':
-                    totalExempt += value;
-                    break;
                 case 'O':
                     totalExempt += value;
                     break;
@@ -160,11 +175,21 @@ function calculateTotals() {
         }
     });
     
-    document.getElementById('totalTaxed').textContent = totalTaxed.toFixed(2);
-    document.getElementById('totalExempt').textContent = totalExempt.toFixed(2);
-    document.getElementById('totalFree').textContent = totalFree.toFixed(2);
-    document.getElementById('totalIGV').textContent = totalIGV.toFixed(2);
-    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    // Actualizar elementos de totales
+    const elements = {
+        'totalTaxed': totalTaxed,
+        'totalExempt': totalExempt,
+        'totalFree': totalFree,
+        'totalIGV': totalIGV,
+        'grandTotal': grandTotal
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value.toFixed(2);
+        }
+    });
     
     // Actualizar monto de pago
     const paymentAmountElement = document.getElementById('paymentAmount');
@@ -174,8 +199,13 @@ function calculateTotals() {
 }
 
 function loadTestScenario() {
+    console.log('📋 Cargando escenario de prueba...');
+    
     // Limpiar líneas existentes
-    document.getElementById('linesTableBody').innerHTML = '';
+    const tbody = document.getElementById('linesTableBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+    }
     lineCounter = 0;
     
     // Agregar líneas de prueba
@@ -209,6 +239,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         method: method,
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') // Agregar CSRF token
         }
     };
 
@@ -226,6 +257,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
             data: data
         };
     } catch (error) {
+        console.error('❌ Error en API:', error);
         return {
             ok: false,
             status: 0,
@@ -234,21 +266,50 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
+// Función para obtener CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 function showProgress(message, detail = '') {
-    document.getElementById('progress-message').textContent = message;
-    document.getElementById('progress-detail').textContent = detail;
-    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
-    modal.show();
+    const progressModal = document.getElementById('progressModal');
+    const messageElement = document.getElementById('progress-message');
+    const detailElement = document.getElementById('progress-detail');
+    
+    if (messageElement) messageElement.textContent = message;
+    if (detailElement) detailElement.textContent = detail;
+    
+    if (progressModal) {
+        const modal = new bootstrap.Modal(progressModal);
+        modal.show();
+    }
 }
 
 function hideProgress() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
-    if (modal) modal.hide();
+    const progressModal = document.getElementById('progressModal');
+    if (progressModal) {
+        const modal = bootstrap.Modal.getInstance(progressModal);
+        if (modal) modal.hide();
+    }
 }
 
 function logMessage(message, type = 'info', data = null) {
     const container = document.getElementById('logsContainer');
-    if (!container) return;
+    if (!container) {
+        console.log(`${type.toUpperCase()}: ${message}`, data);
+        return;
+    }
     
     const timestamp = new Date().toLocaleTimeString();
     
@@ -300,6 +361,9 @@ function logMessage(message, type = 'info', data = null) {
     logEntry.innerHTML = content;
     container.appendChild(logEntry);
     container.scrollTop = container.scrollHeight;
+    
+    // También log en consola
+    console.log(`${type.toUpperCase()}: ${message}`, data);
 }
 
 function clearLogs() {
@@ -316,29 +380,49 @@ function clearLogs() {
 
 // ==================== CREAR DOCUMENTO ====================
 async function createInvoice() {
+    console.log('📄 Iniciando creación de documento...');
     showProgress('Creando documento...', 'Validando datos y creando en el sistema');
     
     try {
-        // Recopilar datos del formulario
+        // Recopilar datos del formulario con validación
+        const requiredFields = {
+            'companyRuc': 'RUC de empresa',
+            'companyName': 'Nombre de empresa',
+            'customerDocNumber': 'Documento del cliente',
+            'customerName': 'Nombre del cliente',
+            'documentSeries': 'Serie del documento',
+            'issueDate': 'Fecha de emisión'
+        };
+        
+        // Validar campos requeridos
+        for (const [fieldId, fieldName] of Object.entries(requiredFields)) {
+            const element = document.getElementById(fieldId);
+            if (!element || !element.value.trim()) {
+                hideProgress();
+                logMessage(`❌ Campo requerido: ${fieldName}`, 'error');
+                return;
+            }
+        }
+        
         const invoiceData = {
             company: {
-                ruc: document.getElementById('companyRuc').value,
-                business_name: document.getElementById('companyName').value,
-                address: document.getElementById('companyAddress').value
+                ruc: document.getElementById('companyRuc').value.trim(),
+                business_name: document.getElementById('companyName').value.trim(),
+                address: document.getElementById('companyAddress').value.trim()
             },
             customer: {
                 document_type: document.getElementById('customerDocType').value,
-                document_number: document.getElementById('customerDocNumber').value,
-                business_name: document.getElementById('customerName').value,
-                address: document.getElementById('customerAddress').value
+                document_number: document.getElementById('customerDocNumber').value.trim(),
+                business_name: document.getElementById('customerName').value.trim(),
+                address: document.getElementById('customerAddress').value.trim()
             },
             document: {
                 document_type: document.getElementById('documentType').value,
-                series: document.getElementById('documentSeries').value,
+                series: document.getElementById('documentSeries').value.trim(),
                 number: document.getElementById('documentNumber').value || null,
                 issue_date: document.getElementById('issueDate').value,
                 currency_code: document.getElementById('currency').value,
-                observations: document.getElementById('observations').value
+                observations: document.getElementById('observations').value.trim()
             },
             lines: [],
             payment: {
@@ -349,30 +433,45 @@ async function createInvoice() {
 
         // Recopilar líneas
         const rows = document.querySelectorAll('#linesTableBody tr');
+        if (rows.length === 0) {
+            hideProgress();
+            logMessage('❌ Debe agregar al menos una línea de detalle', 'error');
+            return;
+        }
+        
         rows.forEach((row, index) => {
             const lineId = row.id.split('-')[1];
             invoiceData.lines.push({
                 line_number: index + 1,
-                product_code: document.getElementById(`code-${lineId}`).value,
-                description: document.getElementById(`desc-${lineId}`).value,
+                product_code: document.getElementById(`code-${lineId}`).value.trim(),
+                description: document.getElementById(`desc-${lineId}`).value.trim(),
                 quantity: parseFloat(document.getElementById(`qty-${lineId}`).value),
                 unit_price: parseFloat(document.getElementById(`price-${lineId}`).value),
                 tax_category_code: document.getElementById(`taxType-${lineId}`).value
             });
         });
 
+        console.log('📤 Enviando datos:', invoiceData);
+        
         const response = await apiCall('/create-invoice-manual/', 'POST', invoiceData);
         hideProgress();
         
         if (response.ok) {
             logMessage('✅ Documento creado exitosamente', 'success', response.data);
             currentInvoiceId = response.data.invoice_id;
-            document.getElementById('processInvoiceId').value = currentInvoiceId;
+            
+            const processInput = document.getElementById('processInvoiceId');
+            if (processInput) {
+                processInput.value = currentInvoiceId;
+            }
             
             // Cambiar a tab de documentos
-            const tab = new bootstrap.Tab(document.getElementById('documents-tab'));
-            tab.show();
-            refreshDocuments();
+            const documentsTab = document.getElementById('documents-tab');
+            if (documentsTab) {
+                const tab = new bootstrap.Tab(documentsTab);
+                tab.show();
+                refreshDocuments();
+            }
         } else {
             logMessage('❌ Error creando documento', 'error', response.data);
         }
@@ -384,12 +483,15 @@ async function createInvoice() {
 
 // ==================== GESTIÓN DE DOCUMENTOS ====================
 async function refreshDocuments() {
+    console.log('🔄 Actualizando lista de documentos...');
+    
     try {
         const response = await apiCall('/documents/');
         
         if (response.ok) {
             currentDocuments = response.data.results || response.data;
             displayDocuments();
+            logMessage(`📄 ${currentDocuments.length} documentos cargados`, 'info');
         } else {
             logMessage('❌ Error cargando documentos', 'error', response.data);
         }
@@ -472,11 +574,17 @@ function formatDate(dateString) {
 
 function selectForProcessing(invoiceId) {
     currentInvoiceId = invoiceId;
-    document.getElementById('processInvoiceId').value = invoiceId;
+    const processInput = document.getElementById('processInvoiceId');
+    if (processInput) {
+        processInput.value = invoiceId;
+    }
     
     // Cambiar a tab de procesamiento
-    const tab = new bootstrap.Tab(document.getElementById('process-tab'));
-    tab.show();
+    const processTab = document.getElementById('process-tab');
+    if (processTab) {
+        const tab = new bootstrap.Tab(processTab);
+        tab.show();
+    }
     
     // Cargar detalles del documento
     loadDocumentDetails(invoiceId);
@@ -609,6 +717,7 @@ function downloadCurrentFile() {
 
 // ==================== FUNCIONES DE PROCESAMIENTO ====================
 async function testConnection() {
+    console.log('🔌 Probando conexión...');
     showProgress('Probando conexión...', 'Verificando servidor y SUNAT');
     
     try {
@@ -634,6 +743,7 @@ async function testConnection() {
 }
 
 async function createTestScenarios() {
+    console.log('🧪 Creando escenarios de prueba...');
     showProgress('Creando escenarios de prueba...', 'Generando documento con todos los tipos de operaciones');
     
     try {
@@ -643,7 +753,12 @@ async function createTestScenarios() {
         if (response.ok) {
             logMessage('✅ Escenarios de prueba creados', 'success', response.data);
             currentInvoiceId = response.data.invoice_id;
-            document.getElementById('processInvoiceId').value = currentInvoiceId;
+            
+            const processInput = document.getElementById('processInvoiceId');
+            if (processInput) {
+                processInput.value = currentInvoiceId;
+            }
+            
             refreshDocuments();
             loadDocumentDetails(currentInvoiceId);
         } else {
@@ -662,6 +777,7 @@ async function convertToUBL() {
         return;
     }
 
+    console.log(`🔄 Convirtiendo documento ${invoiceId} a UBL...`);
     showProgress('Convirtiendo a UBL XML...', 'Generando documento XML estándar UBL 2.1');
     
     try {
@@ -687,6 +803,7 @@ async function signXML() {
         return;
     }
 
+    console.log(`✍️ Firmando XML del documento ${invoiceId}...`);
     showProgress('Firmando XML...', 'Aplicando firma digital con certificado X.509');
     
     try {
@@ -712,6 +829,7 @@ async function sendToSUNAT() {
         return;
     }
 
+    console.log(`📤 Enviando documento ${invoiceId} a SUNAT...`);
     showProgress('Enviando a SUNAT...', 'Transmitiendo documento firmado');
     
     try {
@@ -743,6 +861,7 @@ async function checkStatus() {
         return;
     }
 
+    console.log(`🔍 Consultando estado del documento ${invoiceId}...`);
     showProgress('Consultando estado...', 'Verificando estado actual del documento');
     
     try {
@@ -769,6 +888,7 @@ async function processCompleteFlow() {
         return;
     }
 
+    console.log(`🚀 Iniciando flujo completo para documento ${invoiceId}...`);
     showProgress('Procesando flujo completo...', 'Ejecutando: UBL → Firma → Envío SUNAT');
     
     try {
@@ -872,7 +992,17 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== AUTO-INICIALIZACIÓN ====================
-// Probar conexión automáticamente al cargar (opcional)
+// Probar conexión automáticamente al cargar
 setTimeout(() => {
+    console.log('🔄 Probando conexión automática...');
     testConnection();
-}, 1000);
+}, 2000);
+
+// Log de inicialización final
+console.log('🎉 Conversor UBL 2.1 cargado completamente');
+console.log('📚 Atajos disponibles:');
+console.log('   Ctrl+1: Crear escenarios de prueba');
+console.log('   Ctrl+2: Procesar flujo completo');
+console.log('   Ctrl+3: Consultar estado');
+console.log('   Ctrl+L: Limpiar logs');
+console.log('   Ctrl+H: Mostrar ayuda');

@@ -1,0 +1,135 @@
+/* static/admin/css/custom_admin.css - CSS PERSONALIZADO PARA ADMIN */
+
+/* Badges personalizados para el admin */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    color: #fff;
+}
+
+.badge-primary {
+    background-color: #007bff;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+}
+
+/* Mejoras para el admin */
+.admin-dashboard-stats {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.admin-dashboard-stats h3 {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.stat-item {
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+/* Tablas más legibles */
+.admin table {
+    font-size: 13px;
+}
+
+.admin table .badge {
+    font-size: 11px;
+}
+
+/* Colores específicos para estados de documentos */
+.status-pending {
+    background-color: #6c757d;
+}
+
+.status-processing {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.status-signed {
+    background-color: #17a2b8;
+}
+
+.status-sent {
+    background-color: #007bff;
+}
+
+.status-accepted {
+    background-color: #28a745;
+}
+
+.status-rejected {
+    background-color: #dc3545;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+/* Mejoras para formularios */
+.form-row .badge {
+    margin-top: 5px;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .badge {
+        font-size: 70%;
+        padding: 0.2em 0.3em;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
