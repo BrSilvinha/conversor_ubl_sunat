@@ -85,10 +85,12 @@ class Invoice(TimeStampedModel):
     
     @property
     def document_id(self):
+        """Retorna el ID del documento con formato serie-número"""
         return f"{self.series}-{str(self.number).zfill(8)}"
     
     @property
     def full_document_name(self):
+        """Retorna el nombre completo del documento: RUC-TIPO-SERIE-NUMERO"""
         return f"{self.company.ruc}-{self.document_type}-{self.document_id}"
     
     @classmethod
@@ -120,7 +122,7 @@ class Invoice(TimeStampedModel):
         )
     
     def calculate_totals(self):
-        """Calcula los totales basado en las líneas de detalle"""
+        """Calcula los totales basado en las líneas de detalle - VERSIÓN CORREGIDA"""
         lines = self.invoice_lines.all()
         
         # Resetear totales
@@ -133,18 +135,24 @@ class Invoice(TimeStampedModel):
         self.icbper_amount = Decimal('0.00')
         
         for line in lines:
+            # ✅ CORREGIDO: Manejar valores None correctamente
+            line_extension_amount = line.line_extension_amount or Decimal('0.00')
+            igv_amount = line.igv_amount or Decimal('0.00')
+            isc_amount = line.isc_amount or Decimal('0.00')
+            icbper_amount = line.icbper_amount or Decimal('0.00')
+            
             if line.tax_category_code == 'S':  # Gravado
-                self.total_taxed_amount += line.line_extension_amount or Decimal('0.00')
-                self.igv_amount += line.igv_amount or Decimal('0.00')
+                self.total_taxed_amount += line_extension_amount
+                self.igv_amount += igv_amount
             elif line.tax_category_code == 'E':  # Exonerado
-                self.total_exempt_amount += line.line_extension_amount or Decimal('0.00')
+                self.total_exempt_amount += line_extension_amount
             elif line.tax_category_code == 'O':  # Inafecto
-                self.total_unaffected_amount += line.line_extension_amount or Decimal('0.00')
+                self.total_unaffected_amount += line_extension_amount
             elif line.tax_category_code == 'Z':  # Gratuito
-                self.total_free_amount += line.line_extension_amount or Decimal('0.00')
+                self.total_free_amount += line_extension_amount
                 
-            self.isc_amount += line.isc_amount or Decimal('0.00')
-            self.icbper_amount += line.icbper_amount or Decimal('0.00')
+            self.isc_amount += isc_amount
+            self.icbper_amount += icbper_amount
         
         # Calcular total
         self.total_amount = (
@@ -158,6 +166,37 @@ class Invoice(TimeStampedModel):
         )
         
         self.save()
+    
+    def get_document_type_display_extended(self):
+        """Retorna descripción extendida del tipo de documento"""
+        type_mapping = {
+            '01': 'Factura Electrónica',
+            '03': 'Boleta de Venta Electrónica',
+            '07': 'Nota de Crédito Electrónica',
+            '08': 'Nota de Débito Electrónica'
+        }
+        return type_mapping.get(self.document_type, self.get_document_type_display())
+    
+    def get_currency_symbol(self):
+        """Retorna el símbolo de la moneda"""
+        symbols = {
+            'PEN': 'S/',
+            'USD': '$',
+            'EUR': '€'
+        }
+        return symbols.get(self.currency_code, self.currency_code)
+    
+    def is_taxed_document(self):
+        """Verifica si el documento tiene operaciones gravadas"""
+        return self.total_taxed_amount > 0
+    
+    def has_perception(self):
+        """Verifica si el documento tiene percepción"""
+        return self.perception_amount > 0
+    
+    def get_total_before_tax(self):
+        """Calcula el total antes de impuestos"""
+        return self.total_taxed_amount + self.total_unaffected_amount + self.total_exempt_amount
 
     def __str__(self):
         return f"{self.document_id} - {self.customer.business_name}"
@@ -220,7 +259,7 @@ class InvoiceLine(TimeStampedModel):
     icbper_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, verbose_name="Monto ICBPER")
     
     def calculate_amounts(self):
-        """Calcula los montos de la línea"""
+        """Calcula los montos de la línea basado en cantidad, precio y tipo de impuesto"""
         # Valor de venta (sin impuestos)
         if self.tax_category_code == 'Z':  # Gratuito
             self.line_extension_amount = Decimal('0.00')
@@ -249,8 +288,34 @@ class InvoiceLine(TimeStampedModel):
             self.icbper_amount = self.quantity * self.icbper_rate
         else:
             self.icbper_amount = Decimal('0.00')
+    
+    def get_total_line_amount(self):
+        """Calcula el total de la línea incluyendo impuestos"""
+        line_amount = self.line_extension_amount or Decimal('0.00')
+        igv_amount = self.igv_amount or Decimal('0.00')
+        isc_amount = self.isc_amount or Decimal('0.00')
+        icbper_amount = self.icbper_amount or Decimal('0.00')
+        
+        return line_amount + igv_amount + isc_amount + icbper_amount
+    
+    def is_free_item(self):
+        """Verifica si el item es gratuito"""
+        return self.tax_category_code == 'Z'
+    
+    def is_taxed_item(self):
+        """Verifica si el item está gravado con IGV"""
+        return self.tax_category_code == 'S'
+    
+    def get_unit_code_display_extended(self):
+        """Retorna descripción extendida de la unidad de medida"""
+        return dict(self.UNIT_CODE_CHOICES).get(self.unit_code, self.unit_code)
+    
+    def get_tax_category_display_extended(self):
+        """Retorna descripción extendida de la categoría de impuesto"""
+        return dict(self.TAX_CATEGORY_CHOICES).get(self.tax_category_code, self.tax_category_code)
 
     def save(self, *args, **kwargs):
+        """Override del save para calcular automáticamente los montos"""
         # Calcular line_extension_amount si no se proporciona
         if self.line_extension_amount is None:
             if self.tax_category_code == 'Z':  # Gratuito
@@ -309,6 +374,18 @@ class InvoicePayment(TimeStampedModel):
     payment_means_code = models.CharField(max_length=3, choices=PAYMENT_MEANS_CHOICES)
     payment_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto del Pago")
     
+    def get_payment_means_display_extended(self):
+        """Retorna descripción extendida del medio de pago"""
+        return dict(self.PAYMENT_MEANS_CHOICES).get(self.payment_means_code, self.payment_means_code)
+    
+    def is_cash_payment(self):
+        """Verifica si el pago es en efectivo"""
+        return self.payment_means_code in ['008', '009']
+    
+    def is_electronic_payment(self):
+        """Verifica si el pago es electrónico"""
+        return self.payment_means_code in ['001', '003']
+
     def __str__(self):
         return f"{self.get_payment_means_code_display()}: {self.payment_amount}"
 
