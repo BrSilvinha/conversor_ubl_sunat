@@ -146,3 +146,58 @@ ERROR 2025-07-16 18:54:28,608 log 28256 31888 Internal Server Error: /api/test-s
 ERROR 2025-07-16 18:54:28,608 basehttp 28256 31888 "GET /api/test-sunat-connection/ HTTP/1.1" 500 140
 ERROR 2025-07-16 18:54:30,736 log 28256 34036 Internal Server Error: /api/create-test-scenarios/
 ERROR 2025-07-16 18:54:30,736 basehttp 28256 34036 "POST /api/create-test-scenarios/ HTTP/1.1" 500 233
+INFO 2025-07-16 22:15:41,730 autoreload 31640 27848 Watching for file changes with StatReloader
+WARNING 2025-07-16 22:15:43,927 log 31640 35136 Not Found: /
+WARNING 2025-07-16 22:15:43,927 basehttp 31640 35136 "GET / HTTP/1.1" 404 2423
+INFO 2025-07-16 22:18:10,482 autoreload 31640 27848 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\conversor_ubl\settings.py changed, reloading.
+INFO 2025-07-16 22:18:11,421 autoreload 30196 16580 Watching for file changes with StatReloader
+INFO 2025-07-16 22:18:32,142 basehttp 30196 26464 "GET /admin/ HTTP/1.1" 200 5640
+INFO 2025-07-16 22:18:32,392 basehttp 30196 26464 "GET /static/admin/css/base.css HTTP/1.1" 200 21207
+INFO 2025-07-16 22:18:32,396 basehttp 30196 26464 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+INFO 2025-07-16 22:18:32,420 basehttp 30196 34380 "GET /static/admin/css/responsive.css HTTP/1.1" 200 18533
+INFO 2025-07-16 22:18:32,420 basehttp 30196 35420 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2694
+INFO 2025-07-16 22:18:32,423 basehttp 30196 25816 "GET /static/admin/js/theme.js HTTP/1.1" 200 1943
+INFO 2025-07-16 22:18:32,424 basehttp 30196 33284 "GET /static/admin/css/dashboard.css HTTP/1.1" 200 441
+INFO 2025-07-16 22:18:32,424 basehttp 30196 36392 "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2929
+INFO 2025-07-16 22:18:32,432 basehttp 30196 36392 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
+INFO 2025-07-16 22:18:32,432 basehttp 30196 33284 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 200 380
+INFO 2025-07-16 22:18:43,567 autoreload 30196 16580 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\conversor_ubl\urls.py changed, reloading.
+INFO 2025-07-16 22:18:44,587 autoreload 10868 27000 Watching for file changes with StatReloader
+INFO 2025-07-16 22:18:47,407 basehttp 10868 19980 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-16 22:18:47,564 basehttp 10868 19980 "GET /static/js/ubl-tester.js HTTP/1.1" 200 19658
+WARNING 2025-07-16 22:18:52,968 log 10868 32924 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-16 22:18:52,969 basehttp 10868 32924 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-16 22:18:56,146 basehttp 10868 5836 "OPTIONS /api/test-sunat-connection/ HTTP/1.1" 200 0
+ERROR 2025-07-16 22:18:56,744 views 10868 5836 Error probando conexión SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+ERROR 2025-07-16 22:18:56,747 log 10868 5836 Internal Server Error: /api/test-sunat-connection/
+ERROR 2025-07-16 22:18:56,747 basehttp 10868 5836 "GET /api/test-sunat-connection/ HTTP/1.1" 500 140
+INFO 2025-07-16 22:19:27,663 basehttp 10868 30996 "OPTIONS /api/create-test-scenarios/ HTTP/1.1" 200 0
+ERROR 2025-07-16 22:19:27,747 views 10868 30996 Error creando escenarios de prueba: llave duplicada viola restricción de unicidad «ubl_converter_invoice_company_id_document_type_4d1e28f6_uniq»
+DETAIL:  Ya existe la llave (company_id, document_type, series, number)=(1, 03, B001, 1).
+ERROR 2025-07-16 22:19:27,749 log 10868 30996 Internal Server Error: /api/create-test-scenarios/
+ERROR 2025-07-16 22:19:27,749 basehttp 10868 30996 "POST /api/create-test-scenarios/ HTTP/1.1" 500 233
+INFO 2025-07-16 22:20:48,101 basehttp 10868 24052 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-16 22:20:48,126 basehttp 10868 24052 "GET /static/js/ubl-tester.js HTTP/1.1" 304 0
+INFO 2025-07-16 22:29:43,560 autoreload 10868 27000 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-16 22:29:44,797 autoreload 36380 24740 Watching for file changes with StatReloader
+INFO 2025-07-16 22:31:19,015 autoreload 36380 24740 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\ubl_converter\models.py changed, reloading.
+INFO 2025-07-16 22:31:19,856 autoreload 36280 35432 Watching for file changes with StatReloader
+INFO 2025-07-16 22:31:45,817 autoreload 25760 6760 Watching for file changes with StatReloader
+INFO 2025-07-16 22:32:37,246 basehttp 25760 32980 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-16 22:32:37,352 basehttp 25760 32980 "GET /static/js/ubl-tester.js HTTP/1.1" 304 0
+INFO 2025-07-16 22:32:39,725 basehttp 25760 33160 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+INFO 2025-07-16 22:32:45,169 basehttp 25760 33160 "POST /api/create-test-scenarios/ HTTP/1.1" 201 317
+WARNING 2025-07-16 22:33:51,999 log 25760 17120 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-16 22:33:51,999 basehttp 25760 17120 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-16 22:34:12,122 basehttp 25760 30388 "OPTIONS /api/invoice/6/convert-ubl/ HTTP/1.1" 200 0
+ERROR 2025-07-16 22:34:12,204 views 25760 30388 Error convirtiendo a UBL: duplicate attribute: line 1, column 412
+ERROR 2025-07-16 22:34:12,205 log 25760 30388 Internal Server Error: /api/invoice/6/convert-ubl/
+ERROR 2025-07-16 22:34:12,205 basehttp 25760 30388 "POST /api/invoice/6/convert-ubl/ HTTP/1.1" 500 70
+INFO 2025-07-16 22:34:23,645 basehttp 25760 20980 "OPTIONS /api/invoice/6/sign/ HTTP/1.1" 200 0
+WARNING 2025-07-16 22:34:23,687 log 25760 20980 Bad Request: /api/invoice/6/sign/
+WARNING 2025-07-16 22:34:23,689 basehttp 25760 20980 "POST /api/invoice/6/sign/ HTTP/1.1" 400 62
+INFO 2025-07-16 22:34:26,636 basehttp 25760 20980 "OPTIONS /api/invoice/6/send-sunat/ HTTP/1.1" 200 0
+WARNING 2025-07-16 22:34:26,680 log 25760 20980 Bad Request: /api/invoice/6/send-sunat/
+WARNING 2025-07-16 22:34:26,680 basehttp 25760 20980 "POST /api/invoice/6/send-sunat/ HTTP/1.1" 400 57
+INFO 2025-07-16 23:29:33,565 autoreload 25760 6760 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\ubl_converter\converter.py changed, reloading.
+INFO 2025-07-16 23:29:35,298 autoreload 34312 31224 Watching for file changes with StatReloader

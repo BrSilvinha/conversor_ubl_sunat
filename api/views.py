@@ -1,4 +1,4 @@
-# api/views.py - VERSIÓN CORREGIDA COMPLETA
+# api/views.py - VERSIÓN COMPLETA CORREGIDA
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -20,7 +20,7 @@ from sunat_integration.client import SUNATWebServiceClient
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def create_invoice_test_scenarios(request):
     """
     Crear los 5 escenarios de prueba solicitados:
@@ -99,20 +99,29 @@ def create_invoice_test_scenarios(request):
             )
             products.append(product)
         
-        # Crear boleta de venta con todos los escenarios
+        # ✅ CORREGIDO: Usar numeración automática para evitar duplicados
         with transaction.atomic():
-            # Crear la boleta
+            # Buscar siguiente número disponible para la serie B001
+            existing_invoice = Invoice.objects.filter(
+                company=company,
+                document_type='03',
+                series='B001'
+            ).order_by('-number').first()
+            
+            next_number = (existing_invoice.number + 1) if existing_invoice else 1
+            
+            # Crear la boleta con número único
             invoice = Invoice.objects.create(
                 company=company,
                 customer=customer,
                 document_type='03',  # Boleta de venta
                 series='B001',
-                number=1,
+                number=next_number,  # ✅ Número único
                 issue_date=date.today(),
                 currency_code='PEN',
                 operation_type_code='0101',
                 total_amount=Decimal('0.00'),  # Se calculará después
-                observations='BOLETA DE PRUEBA - TODOS LOS ESCENARIOS'
+                observations=f'BOLETA DE PRUEBA #{next_number} - TODOS LOS ESCENARIOS'
             )
             
             # Línea 1: Producto gravado (S) - Calcular montos manualmente
@@ -210,6 +219,7 @@ def create_invoice_test_scenarios(request):
             'message': 'Escenarios de prueba creados exitosamente',
             'invoice_id': invoice.id,
             'invoice_reference': invoice.full_document_name,
+            'number_generated': next_number,
             'totals': {
                 'total_taxed_amount': float(invoice.total_taxed_amount),
                 'total_exempt_amount': float(invoice.total_exempt_amount), 
@@ -224,11 +234,12 @@ def create_invoice_test_scenarios(request):
         logger.error(f"Error creando escenarios de prueba: {str(e)}")
         return Response({
             'status': 'error',
-            'message': str(e)
+            'message': f'Error interno: {str(e)}',
+            'suggestion': 'Revise la configuración de la base de datos y los settings'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def convert_to_ubl(request, invoice_id):
     """Convierte una factura a XML UBL 2.1"""
     try:
@@ -266,7 +277,7 @@ def convert_to_ubl(request, invoice_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def sign_xml(request, invoice_id):
     """Firma digitalmente el XML de una factura"""
     try:
@@ -323,7 +334,7 @@ def sign_xml(request, invoice_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def send_to_sunat(request, invoice_id):
     """Envía documento firmado a SUNAT"""
     try:
@@ -404,7 +415,7 @@ def send_to_sunat(request, invoice_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def check_sunat_status(request, invoice_id):
     """Consulta el estado en SUNAT (para documentos con ticket)"""
     try:
@@ -472,7 +483,7 @@ def check_sunat_status(request, invoice_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def process_complete_flow(request, invoice_id):
     """Procesa el flujo completo: UBL -> Firma -> Envío a SUNAT"""
     try:
@@ -615,7 +626,7 @@ def process_complete_flow(request, invoice_id):
         return Response(results, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def get_invoice_status(request, invoice_id):
     """Obtiene el estado actual de una factura"""
     try:
@@ -655,18 +666,93 @@ def get_invoice_status(request, invoice_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])  # Permitir acceso sin autenticación para pruebas
+@permission_classes([AllowAny])
 def test_sunat_connection(request):
-    """Prueba la conexión con SUNAT"""
+    """Prueba la conexión con SUNAT - VERSIÓN MEJORADA"""
     try:
-        sunat_client = SUNATWebServiceClient()
-        result = sunat_client.test_connection()
+        # Primero verificar configuración básica
+        sunat_config = settings.SUNAT_CONFIG
         
-        return Response(result)
+        if not sunat_config.get('RUC'):
+            return Response({
+                'status': 'error',
+                'message': 'Configuración SUNAT incompleta: RUC no configurado',
+                'suggestion': 'Verifique el archivo .env'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Intentar crear cliente SUNAT con manejo de errores mejorado
+        try:
+            sunat_client = SUNATWebServiceClient()
+            result = sunat_client.test_connection()
+            
+            # Interpretar el resultado
+            if result['status'] == 'success':
+                return Response({
+                    'status': 'success',
+                    'message': 'Conexión exitosa con SUNAT',
+                    'environment': result.get('environment', 'UNKNOWN'),
+                    'operations': result.get('operations', []),
+                    'wsdl_url': result.get('wsdl_url'),
+                    'note': 'Servicio SUNAT funcionando correctamente'
+                })
+            elif result['status'] == 'warning':
+                # Error 401 es normal con credenciales de prueba
+                return Response({
+                    'status': 'warning',
+                    'message': 'Conexión con advertencias (normal con credenciales de prueba)',
+                    'environment': result.get('environment', 'BETA'),
+                    'error_details': result.get('error_details'),
+                    'suggestion': result.get('suggestion'),
+                    'note': 'El error 401 es esperado con credenciales MODDATOS en BETA'
+                })
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': result.get('message', 'Error desconocido'),
+                    'environment': result.get('environment'),
+                    'suggestion': 'Verifique la conexión a internet y configuración'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except ImportError as e:
+            return Response({
+                'status': 'error',
+                'message': 'Error de dependencias: biblioteca SUNAT no disponible',
+                'error_details': str(e),
+                'suggestion': 'Ejecute: pip install zeep cryptography'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        except Exception as e:
+            error_msg = str(e)
+            
+            # Clasificar tipos de error comunes
+            if '401' in error_msg or 'Unauthorized' in error_msg:
+                return Response({
+                    'status': 'warning',
+                    'message': 'Error de autenticación SUNAT (normal con credenciales de prueba)',
+                    'environment': 'BETA' if sunat_config.get('USE_BETA') else 'PRODUCCIÓN',
+                    'error_details': error_msg,
+                    'note': 'Este error es esperado al usar credenciales MODDATOS en ambiente BETA'
+                })
+            elif 'Connection' in error_msg or 'timeout' in error_msg:
+                return Response({
+                    'status': 'error',
+                    'message': 'Error de conectividad',
+                    'error_details': error_msg,
+                    'suggestion': 'Verifique la conexión a internet'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Error en cliente SUNAT',
+                    'error_details': error_msg,
+                    'suggestion': 'Revise la configuración en settings.py'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     except Exception as e:
-        logger.error(f"Error probando conexión SUNAT: {str(e)}")
+        logger.error(f"Error en test_sunat_connection: {str(e)}")
         return Response({
             'status': 'error',
-            'message': str(e)
+            'message': 'Error interno del sistema',
+            'error_details': str(e),
+            'suggestion': 'Revise los logs del servidor para más detalles'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

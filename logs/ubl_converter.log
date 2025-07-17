@@ -1,0 +1,2 @@
+INFO 2025-07-16 22:34:12,185 converter 25760 30388 Iniciando conversión UBL para 23022479065-03-B001-00000001
+ERROR 2025-07-16 22:34:12,203 converter 25760 30388 Error en conversión UBL para 23022479065-03-B001-00000001: duplicate attribute: line 1, column 412

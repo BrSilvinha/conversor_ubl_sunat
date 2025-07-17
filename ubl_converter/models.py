@@ -1,4 +1,4 @@
-# ubl_converter/models.py - VERSIÓN CORREGIDA COMPLETA
+# ubl_converter/models.py - VERSIÓN COMPLETA CORREGIDA
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
@@ -91,6 +91,34 @@ class Invoice(TimeStampedModel):
     def full_document_name(self):
         return f"{self.company.ruc}-{self.document_type}-{self.document_id}"
     
+    @classmethod
+    def get_next_number(cls, company, document_type, series):
+        """
+        Obtiene el siguiente número disponible para una serie específica
+        """
+        existing_invoice = cls.objects.filter(
+            company=company,
+            document_type=document_type,
+            series=series
+        ).order_by('-number').first()
+        
+        return (existing_invoice.number + 1) if existing_invoice else 1
+    
+    @classmethod
+    def create_with_auto_number(cls, company, document_type, series, **kwargs):
+        """
+        Crea una nueva factura con numeración automática para evitar duplicados
+        """
+        next_number = cls.get_next_number(company, document_type, series)
+        
+        return cls.objects.create(
+            company=company,
+            document_type=document_type,
+            series=series,
+            number=next_number,
+            **kwargs
+        )
+    
     def calculate_totals(self):
         """Calcula los totales basado en las líneas de detalle"""
         lines = self.invoice_lines.all()
@@ -106,17 +134,17 @@ class Invoice(TimeStampedModel):
         
         for line in lines:
             if line.tax_category_code == 'S':  # Gravado
-                self.total_taxed_amount += line.line_extension_amount
-                self.igv_amount += line.igv_amount
+                self.total_taxed_amount += line.line_extension_amount or Decimal('0.00')
+                self.igv_amount += line.igv_amount or Decimal('0.00')
             elif line.tax_category_code == 'E':  # Exonerado
-                self.total_exempt_amount += line.line_extension_amount
+                self.total_exempt_amount += line.line_extension_amount or Decimal('0.00')
             elif line.tax_category_code == 'O':  # Inafecto
-                self.total_unaffected_amount += line.line_extension_amount
+                self.total_unaffected_amount += line.line_extension_amount or Decimal('0.00')
             elif line.tax_category_code == 'Z':  # Gratuito
-                self.total_free_amount += line.line_extension_amount
+                self.total_free_amount += line.line_extension_amount or Decimal('0.00')
                 
-            self.isc_amount += line.isc_amount
-            self.icbper_amount += line.icbper_amount
+            self.isc_amount += line.isc_amount or Decimal('0.00')
+            self.icbper_amount += line.icbper_amount or Decimal('0.00')
         
         # Calcular total
         self.total_amount = (
@@ -174,14 +202,14 @@ class InvoiceLine(TimeStampedModel):
     # Valores de referencia para gratuitos
     reference_price = models.DecimalField(max_digits=12, decimal_places=6, default=0, verbose_name="Precio de Referencia")
     
-    # Totales de línea - AHORA CON NULL=TRUE PARA EVITAR ERROR
+    # Totales de línea
     line_extension_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Valor de Venta")
     
     # Impuestos
     tax_category_code = models.CharField(max_length=1, choices=TAX_CATEGORY_CHOICES, default='S')
     tax_exemption_reason_code = models.CharField(max_length=2, blank=True, null=True)
     
-    # Montos de impuestos - AHORA CON NULL=TRUE
+    # Montos de impuestos
     igv_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, verbose_name="Tasa IGV %")
     igv_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, verbose_name="Monto IGV")
     
@@ -204,14 +232,14 @@ class InvoiceLine(TimeStampedModel):
         
         # IGV
         if self.tax_category_code == 'S':  # Solo gravado paga IGV
-            base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * self.reference_price)
+            base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * (self.reference_price or Decimal('0.00')))
             self.igv_amount = base_amount * (self.igv_rate / 100)
         else:
             self.igv_amount = Decimal('0.00')
         
         # ISC
         if self.isc_rate > 0:
-            base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * self.reference_price)
+            base_amount = self.line_extension_amount if self.tax_category_code != 'Z' else (self.quantity * (self.reference_price or Decimal('0.00')))
             self.isc_amount = base_amount * (self.isc_rate / 100)
         else:
             self.isc_amount = Decimal('0.00')

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor UBL 2.1 - Panel de Pruebas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row">
+            <div class="col-12">
+                <nav class="navbar navbar-dark bg-primary mb-4">
+                    <div class="container-fluid">
+                        <span class="navbar-brand mb-0 h1">
+                            <i class="bi bi-file-earmark-code"></i>
+                            Conversor UBL 2.1 - Panel de Pruebas
+                        </span>
+                        <span class="badge bg-light text-primary" id="server-status">Desconectado</span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Control Panel -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Panel de Control</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Connection Test -->
+                        <div class="mb-3">
+                            <button class="btn btn-outline-primary w-100" onclick="testConnection()">
+                                <i class="bi bi-wifi"></i> Probar Conexión
+                            </button>
+                        </div>
+
+                        <!-- Create Test Scenarios -->
+                        <div class="mb-3">
+                            <button class="btn btn-success w-100" onclick="createTestScenarios()">
+                                <i class="bi bi-plus-circle"></i> Crear Escenarios de Prueba
+                            </button>
+                        </div>
+
+                        <!-- Invoice ID Input -->
+                        <div class="mb-3">
+                            <label for="invoiceId" class="form-label">ID de Factura:</label>
+                            <input type="number" class="form-control" id="invoiceId" placeholder="Ingrese ID de factura">
+                        </div>
+
+                        <!-- Individual Steps -->
+                        <div class="mb-3">
+                            <h6>Pasos Individuales:</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-info btn-sm" onclick="convertToUBL()">
+                                    <i class="bi bi-file-code"></i> 1. Convertir a UBL
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="signXML()">
+                                    <i class="bi bi-shield-check"></i> 2. Firmar XML
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="sendToSUNAT()">
+                                    <i class="bi bi-send"></i> 3. Enviar a SUNAT
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="checkStatus()">
+                                    <i class="bi bi-search"></i> Consultar Estado
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Complete Flow -->
+                        <div class="mb-3">
+                            <button class="btn btn-primary w-100" onclick="processCompleteFlow()">
+                                <i class="bi bi-arrow-right-circle"></i> Flujo Completo
+                            </button>
+                        </div>
+
+                        <!-- Clear Logs -->
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary w-100" onclick="clearLogs()">
+                                <i class="bi bi-trash"></i> Limpiar Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Invoice Info -->
+                <div class="card mt-3" id="invoice-info" style="display: none;">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="bi bi-file-text"></i> Información de Factura</h6>
+                    </div>
+                    <div class="card-body" id="invoice-details">
+                        <!-- Información de la factura se mostrará aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Panel -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-terminal"></i> Logs de Respuesta</h5>
+                        <small id="timestamp"></small>
+                    </div>
+                    <div class="card-body">
+                        <div id="response-container" style="height: 600px; overflow-y: auto;">
+                            <div class="text-muted text-center p-4">
+                                <i class="bi bi-info-circle fs-1"></i>
+                                <p class="mt-2">Los resultados de las operaciones aparecerán aquí</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Modal -->
+        <div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center p-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <h5 id="progress-message">Procesando...</h5>
+                        <p class="text-muted" id="progress-detail">Por favor espere</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="static/js/ubl-tester.js"></script>
+</body>
+</html>

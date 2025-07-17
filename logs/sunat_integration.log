@@ -1,0 +1,4 @@
+INFO 2025-07-16 22:18:56,148 client 10868 5836 Usando ambiente BETA de SUNAT
+ERROR 2025-07-16 22:18:56,743 client 10868 5836 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+INFO 2025-07-16 22:32:39,309 client 25760 33160 Usando ambiente BETA de SUNAT
+ERROR 2025-07-16 22:32:39,724 client 25760 33160 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl

@@ -1,4 +1,4 @@
-# conversor_ubl/settings.py
+# conversor_ubl/settings.py - VERSIÓN COMPLETA Y CORREGIDA
 import os
 from pathlib import Path
 from decouple import config, Csv
@@ -51,7 +51,7 @@ ROOT_URLCONF = 'conversor_ubl.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates'],  # ✅ AGREGADO PARA FRONTEND
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -100,16 +100,23 @@ TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images) - ✅ CORREGIDO
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    BASE_DIR / 'static',  # ✅ AGREGADO PARA ARCHIVOS ESTÁTICOS PERSONALIZADOS
 ]
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Crear directorios necesarios si no existen
+os.makedirs(MEDIA_ROOT / 'xml_files', exist_ok=True)
+os.makedirs(MEDIA_ROOT / 'zip_files', exist_ok=True)
+os.makedirs(MEDIA_ROOT / 'cdr_files', exist_ok=True)
+os.makedirs(MEDIA_ROOT / 'certificates', exist_ok=True)
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -130,17 +137,33 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
-# CORS settings
+# CORS settings - ✅ MEJORADO PARA FRONTEND
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://localhost:8000",  # ✅ AGREGADO PARA FRONTEND LOCAL
+    "http://127.0.0.1:8000",  # ✅ AGREGADO PARA FRONTEND LOCAL
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Logging
+# ✅ AGREGADO: Permitir todos los métodos necesarios para la API
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Solo en desarrollo
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Logging - ✅ MEJORADO
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -150,7 +173,7 @@ LOGGING = {
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
     },
@@ -166,6 +189,18 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'ubl_file': {  # ✅ AGREGADO: Log específico para UBL
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'ubl_converter.log',
+            'formatter': 'verbose',
+        },
+        'sunat_file': {  # ✅ AGREGADO: Log específico para SUNAT
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -174,11 +209,21 @@ LOGGING = {
             'propagate': True,
         },
         'ubl_converter': {
-            'handlers': ['file', 'console'],
+            'handlers': ['ubl_file', 'console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'sunat_integration': {
+            'handlers': ['sunat_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'digital_signature': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'api': {
             'handlers': ['file', 'console'],
             'level': 'DEBUG',
             'propagate': True,
@@ -186,7 +231,7 @@ LOGGING = {
     },
 }
 
-# SUNAT Configuration
+# SUNAT Configuration - ✅ MEJORADO
 SUNAT_CONFIG = {
     'BETA_URL': 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl',
     'PRODUCTION_URL': 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl',
@@ -194,11 +239,11 @@ SUNAT_CONFIG = {
     'RUC': config('SUNAT_RUC', default='20000000000'),
     'USERNAME': config('SUNAT_USERNAME', default='MODDATOS'),
     'PASSWORD': config('SUNAT_PASSWORD', default='MODDATOS'),
-    'CERTIFICATE_PATH': config('SUNAT_CERTIFICATE_PATH', default=''),
+    'CERTIFICATE_PATH': config('SUNAT_CERTIFICATE_PATH', default=str(MEDIA_ROOT / 'certificates' / 'certificate.pfx')),
     'CERTIFICATE_PASSWORD': config('SUNAT_CERTIFICATE_PASSWORD', default=''),
 }
 
-# UBL Configuration
+# UBL Configuration - ✅ CORREGIDO Y AMPLIADO
 UBL_CONFIG = {
     'VERSION': '2.1',
     'CUSTOMIZATION_ID': '2.0',
@@ -220,3 +265,37 @@ UBL_CONFIG = {
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+
+# ✅ AGREGADO: Configuración específica para desarrollo
+if DEBUG:
+    # Desactivar algunas restricciones de seguridad en desarrollo
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
+    
+    # Configuración adicional para desarrollo
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+    ]
+
+# ✅ AGREGADO: Configuración de archivos de prueba
+TEST_DATA_CONFIG = {
+    'DEFAULT_COMPANY_RUC': '23022479065',
+    'DEFAULT_CUSTOMER_DOC': '12345678',
+    'DEFAULT_CURRENCY': 'PEN',
+    'DEFAULT_IGV_RATE': 18.00,
+    'DEFAULT_PERCEPTION_RATE': 2.00,
+}
+
+# ✅ AGREGADO: Configuración de validaciones
+VALIDATION_CONFIG = {
+    'ENABLE_STRICT_VALIDATION': config('ENABLE_STRICT_VALIDATION', default=False, cast=bool),
+    'VALIDATE_RUC_CHECKSUM': config('VALIDATE_RUC_CHECKSUM', default=True, cast=bool),
+    'VALIDATE_CERTIFICATE_EXPIRY': config('VALIDATE_CERTIFICATE_EXPIRY', default=True, cast=bool),
+}
+
+# ✅ AGREGADO: Configuración de timeouts
+TIMEOUT_CONFIG = {
+    'SUNAT_REQUEST_TIMEOUT': config('SUNAT_REQUEST_TIMEOUT', default=30, cast=int),
+    'XML_PROCESSING_TIMEOUT': config('XML_PROCESSING_TIMEOUT', default=10, cast=int),
+    'SIGNATURE_TIMEOUT': config('SIGNATURE_TIMEOUT', default=15, cast=int),
+}
