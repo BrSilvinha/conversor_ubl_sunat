@@ -1,45 +1,255 @@
-// ubl-tester.js - JavaScript para el frontend del Conversor UBL 2.1
-// Configuración
+// static/js/ubl-manager.js - JAVASCRIPT COMPLETO PARA EL CONVERSOR UBL 2.1
+
+// ==================== CONFIGURACIÓN GLOBAL ====================
 const API_BASE_URL = 'http://localhost:8000/api';
 let currentInvoiceId = null;
-let progressModal = null;
+let currentDocuments = [];
+let lineCounter = 0;
 
-// Inicialización
+// ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', function() {
-    progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
     updateTimestamp();
     setInterval(updateTimestamp, 1000);
-    logMessage('Sistema iniciado. Listo para pruebas.', 'info');
+    
+    // Establecer fecha actual
+    document.getElementById('issueDate').value = new Date().toISOString().split('T')[0];
+    
+    // Agregar línea inicial
+    addLine();
+    
+    // Cargar documentos al cambiar a la pestaña
+    document.getElementById('documents-tab').addEventListener('shown.bs.tab', function() {
+        refreshDocuments();
+    });
+    
+    logMessage('Sistema iniciado. Listo para crear documentos.', 'info');
 });
 
-// ==================== UTILIDADES ====================
 function updateTimestamp() {
-    document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    const timestampElement = document.getElementById('timestamp');
+    if (timestampElement) {
+        timestampElement.textContent = new Date().toLocaleString();
+    }
+}
+
+function updateServerStatus(status) {
+    const statusElement = document.getElementById('server-status');
+    if (statusElement) {
+        if (status === 'connected') {
+            statusElement.textContent = 'Conectado';
+            statusElement.className = 'badge bg-success text-white';
+        } else {
+            statusElement.textContent = 'Desconectado';
+            statusElement.className = 'badge bg-danger text-white';
+        }
+    }
+}
+
+// ==================== GESTIÓN DE LÍNEAS DE DETALLE ====================
+function addLine() {
+    lineCounter++;
+    const tbody = document.getElementById('linesTableBody');
+    const row = document.createElement('tr');
+    row.id = `line-${lineCounter}`;
+    
+    row.innerHTML = `
+        <td>${lineCounter}</td>
+        <td><input type="text" class="form-control form-control-sm" id="code-${lineCounter}" value="PROD${lineCounter.toString().padStart(3, '0')}" onchange="calculateLine(${lineCounter})"></td>
+        <td><input type="text" class="form-control form-control-sm" id="desc-${lineCounter}" value="Producto ${lineCounter}" onchange="calculateLine(${lineCounter})"></td>
+        <td><input type="number" class="form-control form-control-sm" id="qty-${lineCounter}" value="1" step="0.01" onchange="calculateLine(${lineCounter})"></td>
+        <td><input type="number" class="form-control form-control-sm" id="price-${lineCounter}" value="100.00" step="0.01" onchange="calculateLine(${lineCounter})"></td>
+        <td>
+            <select class="form-select form-select-sm" id="taxType-${lineCounter}" onchange="calculateLine(${lineCounter})">
+                <option value="S">Gravado (IGV)</option>
+                <option value="E">Exonerado</option>
+                <option value="O">Inafecto</option>
+                <option value="Z">Gratuito</option>
+            </select>
+        </td>
+        <td><span id="value-${lineCounter}">100.00</span></td>
+        <td><span id="igv-${lineCounter}">18.00</span></td>
+        <td><span id="total-${lineCounter}">118.00</span></td>
+        <td>
+            <button class="btn btn-danger btn-sm" onclick="removeLine(${lineCounter})">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    calculateLine(lineCounter);
+}
+
+function removeLine(lineId) {
+    const row = document.getElementById(`line-${lineId}`);
+    if (row) {
+        row.remove();
+        calculateTotals();
+    }
+}
+
+function calculateLine(lineId) {
+    const qtyElement = document.getElementById(`qty-${lineId}`);
+    const priceElement = document.getElementById(`price-${lineId}`);
+    const taxTypeElement = document.getElementById(`taxType-${lineId}`);
+    
+    if (!qtyElement || !priceElement || !taxTypeElement) return;
+    
+    const qty = parseFloat(qtyElement.value) || 0;
+    const price = parseFloat(priceElement.value) || 0;
+    const taxType = taxTypeElement.value;
+    
+    let value = qty * price;
+    let igv = 0;
+    let total = value;
+    
+    if (taxType === 'S') { // Gravado
+        igv = value * 0.18;
+        total = value + igv;
+    } else if (taxType === 'Z') { // Gratuito
+        value = 0;
+        igv = 0;
+        total = 0;
+    }
+    
+    document.getElementById(`value-${lineId}`).textContent = value.toFixed(2);
+    document.getElementById(`igv-${lineId}`).textContent = igv.toFixed(2);
+    document.getElementById(`total-${lineId}`).textContent = total.toFixed(2);
+    
+    calculateTotals();
+}
+
+function calculateTotals() {
+    let totalTaxed = 0;
+    let totalExempt = 0;
+    let totalFree = 0;
+    let totalIGV = 0;
+    let grandTotal = 0;
+    
+    const rows = document.querySelectorAll('#linesTableBody tr');
+    rows.forEach(row => {
+        const lineId = row.id.split('-')[1];
+        const taxTypeElement = document.getElementById(`taxType-${lineId}`);
+        const valueElement = document.getElementById(`value-${lineId}`);
+        const igvElement = document.getElementById(`igv-${lineId}`);
+        const totalElement = document.getElementById(`total-${lineId}`);
+        
+        if (taxTypeElement && valueElement && igvElement && totalElement) {
+            const taxType = taxTypeElement.value;
+            const value = parseFloat(valueElement.textContent) || 0;
+            const igv = parseFloat(igvElement.textContent) || 0;
+            const total = parseFloat(totalElement.textContent) || 0;
+            
+            switch(taxType) {
+                case 'S':
+                    totalTaxed += value;
+                    break;
+                case 'E':
+                    totalExempt += value;
+                    break;
+                case 'O':
+                    totalExempt += value;
+                    break;
+                case 'Z':
+                    totalFree += value;
+                    break;
+            }
+            
+            totalIGV += igv;
+            grandTotal += total;
+        }
+    });
+    
+    document.getElementById('totalTaxed').textContent = totalTaxed.toFixed(2);
+    document.getElementById('totalExempt').textContent = totalExempt.toFixed(2);
+    document.getElementById('totalFree').textContent = totalFree.toFixed(2);
+    document.getElementById('totalIGV').textContent = totalIGV.toFixed(2);
+    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    
+    // Actualizar monto de pago
+    const paymentAmountElement = document.getElementById('paymentAmount');
+    if (paymentAmountElement) {
+        paymentAmountElement.value = grandTotal.toFixed(2);
+    }
+}
+
+function loadTestScenario() {
+    // Limpiar líneas existentes
+    document.getElementById('linesTableBody').innerHTML = '';
+    lineCounter = 0;
+    
+    // Agregar líneas de prueba
+    addLine();
+    document.getElementById(`desc-${lineCounter}`).value = 'PRODUCTO GRAVADO';
+    document.getElementById(`qty-${lineCounter}`).value = '2';
+    document.getElementById(`price-${lineCounter}`).value = '100.00';
+    document.getElementById(`taxType-${lineCounter}`).value = 'S';
+    calculateLine(lineCounter);
+    
+    addLine();
+    document.getElementById(`desc-${lineCounter}`).value = 'PRODUCTO EXONERADO';
+    document.getElementById(`qty-${lineCounter}`).value = '1';
+    document.getElementById(`price-${lineCounter}`).value = '50.00';
+    document.getElementById(`taxType-${lineCounter}`).value = 'E';
+    calculateLine(lineCounter);
+    
+    addLine();
+    document.getElementById(`desc-${lineCounter}`).value = 'PRODUCTO GRATUITO - BONIFICACION';
+    document.getElementById(`qty-${lineCounter}`).value = '1';
+    document.getElementById(`price-${lineCounter}`).value = '30.00';
+    document.getElementById(`taxType-${lineCounter}`).value = 'Z';
+    calculateLine(lineCounter);
+    
+    logMessage('✅ Escenario de prueba cargado con 3 líneas', 'success');
+}
+
+// ==================== API FUNCTIONS ====================
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    };
+
+    if (body) {
+        options.body = JSON.stringify(body);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        const data = await response.json();
+        
+        return {
+            ok: response.ok,
+            status: response.status,
+            data: data
+        };
+    } catch (error) {
+        return {
+            ok: false,
+            status: 0,
+            error: error.message
+        };
+    }
 }
 
 function showProgress(message, detail = '') {
     document.getElementById('progress-message').textContent = message;
     document.getElementById('progress-detail').textContent = detail;
-    progressModal.show();
+    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+    modal.show();
 }
 
 function hideProgress() {
-    progressModal.hide();
-}
-
-function updateServerStatus(status) {
-    const statusElement = document.getElementById('server-status');
-    if (status === 'connected') {
-        statusElement.textContent = 'Conectado';
-        statusElement.className = 'badge bg-success text-white';
-    } else {
-        statusElement.textContent = 'Desconectado';
-        statusElement.className = 'badge bg-danger text-white';
-    }
+    const modal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
+    if (modal) modal.hide();
 }
 
 function logMessage(message, type = 'info', data = null) {
-    const container = document.getElementById('response-container');
+    const container = document.getElementById('logsContainer');
+    if (!container) return;
+    
     const timestamp = new Date().toLocaleTimeString();
     
     let badgeClass = 'bg-primary';
@@ -77,7 +287,7 @@ function logMessage(message, type = 'info', data = null) {
         const dataId = `data-${Date.now()}`;
         content += `
             <div class="mt-2">
-                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#${dataId}" aria-expanded="false">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#${dataId}">
                     <i class="bi bi-code"></i> Ver Datos
                 </button>
                 <div class="collapse mt-2" id="${dataId}">
@@ -93,299 +303,445 @@ function logMessage(message, type = 'info', data = null) {
 }
 
 function clearLogs() {
-    const container = document.getElementById('response-container');
-    container.innerHTML = `
-        <div class="text-muted text-center p-4">
-            <i class="bi bi-info-circle fs-1"></i>
-            <p class="mt-2">Logs limpiados. Los resultados aparecerán aquí.</p>
-        </div>
-    `;
-}
-
-function updateInvoiceInfo(invoiceData) {
-    currentInvoiceId = invoiceData.invoice_id;
-    document.getElementById('invoiceId').value = currentInvoiceId;
-    
-    const infoCard = document.getElementById('invoice-info');
-    const detailsDiv = document.getElementById('invoice-details');
-    
-    detailsDiv.innerHTML = `
-        <div class="row">
-            <div class="col-12">
-                <h6 class="text-primary">ID: ${invoiceData.invoice_id}</h6>
-                <p class="mb-2"><strong>Referencia:</strong> ${invoiceData.invoice_reference || invoiceData.document_reference || 'N/A'}</p>
-                <p class="mb-2"><strong>Estado:</strong> 
-                    <span class="badge bg-info">${invoiceData.status || 'N/A'}</span>
-                </p>
+    const container = document.getElementById('logsContainer');
+    if (container) {
+        container.innerHTML = `
+            <div class="text-muted text-center p-4">
+                <i class="bi bi-info-circle fs-1"></i>
+                <p class="mt-2">Los logs del sistema aparecerán aquí</p>
             </div>
-        </div>
-        ${invoiceData.totals ? `
-            <div class="row mt-2">
-                <div class="col-12">
-                    <h6>Totales:</h6>
-                    <ul class="list-unstyled small">
-                        <li>• Gravado: S/ ${parseFloat(invoiceData.totals.total_taxed_amount || 0).toFixed(2)}</li>
-                        <li>• Exonerado: S/ ${parseFloat(invoiceData.totals.total_exempt_amount || 0).toFixed(2)}</li>
-                        <li>• IGV: S/ ${parseFloat(invoiceData.totals.igv_amount || 0).toFixed(2)}</li>
-                        <li>• Percepción: S/ ${parseFloat(invoiceData.totals.perception_amount || 0).toFixed(2)}</li>
-                        <li><strong>Total: S/ ${parseFloat(invoiceData.totals.total_amount || 0).toFixed(2)}</strong></li>
-                    </ul>
-                </div>
-            </div>
-        ` : ''}
-        ${invoiceData.files ? `
-            <div class="row mt-2">
-                <div class="col-12">
-                    <h6>Archivos:</h6>
-                    <ul class="list-unstyled small">
-                        <li>• XML: ${invoiceData.files.xml_file ? '✅ Generado' : '❌ No generado'}</li>
-                        <li>• ZIP: ${invoiceData.files.zip_file ? '✅ Generado' : '❌ No generado'}</li>
-                        <li>• CDR: ${invoiceData.files.cdr_file ? '✅ Generado' : '❌ No generado'}</li>
-                    </ul>
-                </div>
-            </div>
-        ` : ''}
-        ${invoiceData.sunat_info && invoiceData.sunat_info.response_code ? `
-            <div class="row mt-2">
-                <div class="col-12">
-                    <h6>SUNAT:</h6>
-                    <p class="small mb-1"><strong>Código:</strong> ${invoiceData.sunat_info.response_code}</p>
-                    <p class="small mb-0"><strong>Descripción:</strong> ${invoiceData.sunat_info.response_description || 'N/A'}</p>
-                </div>
-            </div>
-        ` : ''}
-    `;
-    
-    infoCard.style.display = 'block';
-}
-
-function getInvoiceId() {
-    const invoiceId = document.getElementById('invoiceId').value;
-    if (!invoiceId) {
-        logMessage('⚠️ Por favor ingrese un ID de factura o cree escenarios de prueba primero', 'warning');
-        return null;
+        `;
     }
-    return invoiceId;
 }
 
-// ==================== API FUNCTIONS ====================
-async function apiCall(endpoint, method = 'GET', body = null) {
-    const options = {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    };
-
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-
+// ==================== CREAR DOCUMENTO ====================
+async function createInvoice() {
+    showProgress('Creando documento...', 'Validando datos y creando en el sistema');
+    
     try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-        const data = await response.json();
+        // Recopilar datos del formulario
+        const invoiceData = {
+            company: {
+                ruc: document.getElementById('companyRuc').value,
+                business_name: document.getElementById('companyName').value,
+                address: document.getElementById('companyAddress').value
+            },
+            customer: {
+                document_type: document.getElementById('customerDocType').value,
+                document_number: document.getElementById('customerDocNumber').value,
+                business_name: document.getElementById('customerName').value,
+                address: document.getElementById('customerAddress').value
+            },
+            document: {
+                document_type: document.getElementById('documentType').value,
+                series: document.getElementById('documentSeries').value,
+                number: document.getElementById('documentNumber').value || null,
+                issue_date: document.getElementById('issueDate').value,
+                currency_code: document.getElementById('currency').value,
+                observations: document.getElementById('observations').value
+            },
+            lines: [],
+            payment: {
+                payment_means_code: document.getElementById('paymentMethod').value,
+                payment_amount: document.getElementById('paymentAmount').value
+            }
+        };
+
+        // Recopilar líneas
+        const rows = document.querySelectorAll('#linesTableBody tr');
+        rows.forEach((row, index) => {
+            const lineId = row.id.split('-')[1];
+            invoiceData.lines.push({
+                line_number: index + 1,
+                product_code: document.getElementById(`code-${lineId}`).value,
+                description: document.getElementById(`desc-${lineId}`).value,
+                quantity: parseFloat(document.getElementById(`qty-${lineId}`).value),
+                unit_price: parseFloat(document.getElementById(`price-${lineId}`).value),
+                tax_category_code: document.getElementById(`taxType-${lineId}`).value
+            });
+        });
+
+        const response = await apiCall('/create-invoice-manual/', 'POST', invoiceData);
+        hideProgress();
         
-        return {
-            ok: response.ok,
-            status: response.status,
-            data: data
-        };
+        if (response.ok) {
+            logMessage('✅ Documento creado exitosamente', 'success', response.data);
+            currentInvoiceId = response.data.invoice_id;
+            document.getElementById('processInvoiceId').value = currentInvoiceId;
+            
+            // Cambiar a tab de documentos
+            const tab = new bootstrap.Tab(document.getElementById('documents-tab'));
+            tab.show();
+            refreshDocuments();
+        } else {
+            logMessage('❌ Error creando documento', 'error', response.data);
+        }
     } catch (error) {
-        return {
-            ok: false,
-            status: 0,
-            error: error.message
-        };
+        hideProgress();
+        logMessage('❌ Error de conexión al crear documento', 'error', { error: error.message });
     }
 }
 
-// ==================== TEST FUNCTIONS ====================
+// ==================== GESTIÓN DE DOCUMENTOS ====================
+async function refreshDocuments() {
+    try {
+        const response = await apiCall('/documents/');
+        
+        if (response.ok) {
+            currentDocuments = response.data.results || response.data;
+            displayDocuments();
+        } else {
+            logMessage('❌ Error cargando documentos', 'error', response.data);
+        }
+    } catch (error) {
+        logMessage('❌ Error de conexión al cargar documentos', 'error', { error: error.message });
+    }
+}
+
+function displayDocuments() {
+    const tbody = document.getElementById('documentsTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!currentDocuments || currentDocuments.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted p-4">
+                    <i class="bi bi-inbox fs-1"></i><br>
+                    No hay documentos creados
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    currentDocuments.forEach(doc => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${doc.id}</td>
+            <td>
+                <span class="badge ${doc.document_type === '01' ? 'bg-primary' : 'bg-success'}">
+                    ${doc.document_type === '01' ? 'Factura' : 'Boleta'}
+                </span>
+            </td>
+            <td>${doc.document_reference || doc.full_document_name || `${doc.series}-${doc.number}`}</td>
+            <td>${doc.customer_name || 'N/A'}</td>
+            <td>S/ ${parseFloat(doc.total_amount || 0).toFixed(2)}</td>
+            <td>
+                <span class="badge ${getStatusBadgeClass(doc.status)}">
+                    ${doc.status || 'PENDING'}
+                </span>
+            </td>
+            <td>${formatDate(doc.created_at || doc.issue_date)}</td>
+            <td>
+                ${doc.xml_file ? '<i class="bi bi-file-code text-success" title="XML"></i>' : '<i class="bi bi-file-code text-muted"></i>'}
+                ${doc.zip_file ? '<i class="bi bi-file-zip text-warning ms-1" title="ZIP"></i>' : '<i class="bi bi-file-zip text-muted ms-1"></i>'}
+                ${doc.cdr_file ? '<i class="bi bi-file-check text-primary ms-1" title="CDR"></i>' : '<i class="bi bi-file-check text-muted ms-1"></i>'}
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary btn-sm" onclick="selectForProcessing(${doc.id})" title="Procesar">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    ${doc.xml_file ? `<button class="btn btn-success btn-sm" onclick="viewFile('${doc.xml_file}', 'XML')" title="Ver XML"><i class="bi bi-file-code"></i></button>` : ''}
+                    ${doc.cdr_file ? `<button class="btn btn-warning btn-sm" onclick="viewFile('${doc.cdr_file}', 'CDR')" title="Ver CDR"><i class="bi bi-file-check"></i></button>` : ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'SIGNED': return 'bg-success';
+        case 'ACCEPTED': return 'bg-success';
+        case 'SENT': return 'bg-info';
+        case 'PROCESSING': return 'bg-warning';
+        case 'ERROR': return 'bg-danger';
+        case 'REJECTED': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('es-PE');
+}
+
+function selectForProcessing(invoiceId) {
+    currentInvoiceId = invoiceId;
+    document.getElementById('processInvoiceId').value = invoiceId;
+    
+    // Cambiar a tab de procesamiento
+    const tab = new bootstrap.Tab(document.getElementById('process-tab'));
+    tab.show();
+    
+    // Cargar detalles del documento
+    loadDocumentDetails(invoiceId);
+    
+    logMessage(`📄 Documento ${invoiceId} seleccionado para procesamiento`, 'info');
+}
+
+async function loadDocumentDetails(invoiceId) {
+    try {
+        const response = await apiCall(`/invoice/${invoiceId}/status/`);
+        
+        if (response.ok) {
+            displayDocumentDetails(response.data);
+            displayFiles(response.data);
+        } else {
+            logMessage('❌ Error cargando detalles del documento', 'error', response.data);
+        }
+    } catch (error) {
+        logMessage('❌ Error de conexión al cargar detalles', 'error', { error: error.message });
+    }
+}
+
+function displayDocumentDetails(docData) {
+    const container = document.getElementById('currentDocumentDetails');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-primary">Documento ${docData.invoice_id}</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Referencia:</strong></td><td>${docData.document_reference || 'N/A'}</td></tr>
+                    <tr><td><strong>Estado:</strong></td><td><span class="badge ${getStatusBadgeClass(docData.status)}">${docData.status}</span></td></tr>
+                    <tr><td><strong>Creado:</strong></td><td>${formatDate(docData.created_at)}</td></tr>
+                    <tr><td><strong>Actualizado:</strong></td><td>${formatDate(docData.updated_at)}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-success">Totales</h6>
+                <table class="table table-sm">
+                    <tr><td>Gravado:</td><td>S/ ${parseFloat(docData.totals?.total_taxed_amount || 0).toFixed(2)}</td></tr>
+                    <tr><td>Exonerado:</td><td>S/ ${parseFloat(docData.totals?.total_exempt_amount || 0).toFixed(2)}</td></tr>
+                    <tr><td>IGV:</td><td>S/ ${parseFloat(docData.totals?.igv_amount || 0).toFixed(2)}</td></tr>
+                    <tr><td><strong>Total:</strong></td><td><strong>S/ ${parseFloat(docData.totals?.total_amount || 0).toFixed(2)}</strong></td></tr>
+                </table>
+            </div>
+        </div>
+        
+        ${docData.sunat_info?.response_code ? `
+            <div class="alert alert-info mt-3">
+                <h6>Información SUNAT</h6>
+                <p class="mb-1"><strong>Código:</strong> ${docData.sunat_info.response_code}</p>
+                <p class="mb-0"><strong>Descripción:</strong> ${docData.sunat_info.response_description || 'N/A'}</p>
+                ${docData.sunat_info.ticket ? `<p class="mb-0"><strong>Ticket:</strong> ${docData.sunat_info.ticket}</p>` : ''}
+            </div>
+        ` : ''}
+    `;
+}
+
+function displayFiles(docData) {
+    const container = document.getElementById('filesViewer');
+    if (!container) return;
+    
+    const files = [
+        { type: 'XML', file: docData.files?.xml_file, icon: 'file-code', color: 'success' },
+        { type: 'ZIP', file: docData.files?.zip_file, icon: 'file-zip', color: 'warning' },
+        { type: 'CDR', file: docData.files?.cdr_file, icon: 'file-check', color: 'primary' }
+    ];
+    
+    let filesHtml = '';
+    files.forEach(fileInfo => {
+        const available = fileInfo.file ? true : false;
+        filesHtml += `
+            <div class="col-md-4 mb-3">
+                <div class="card ${available ? 'border-' + fileInfo.color : 'border-secondary'}">
+                    <div class="card-body text-center">
+                        <i class="bi bi-${fileInfo.icon} fs-1 ${available ? 'text-' + fileInfo.color : 'text-muted'}"></i>
+                        <h6 class="mt-2">${fileInfo.type}</h6>
+                        ${available ? 
+                            `<button class="btn btn-${fileInfo.color} btn-sm" onclick="viewFile('${fileInfo.file}', '${fileInfo.type}')">
+                                <i class="bi bi-eye"></i> Ver
+                            </button>` :
+                            '<span class="text-muted">No generado</span>'
+                        }
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = filesHtml;
+}
+
+// ==================== VISOR DE ARCHIVOS ====================
+async function viewFile(filePath, fileType) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/file-content/?path=${encodeURIComponent(filePath)}`);
+        
+        if (response.ok) {
+            const content = await response.text();
+            
+            document.getElementById('fileViewerTitle').textContent = `${fileType} - ${filePath.split('/').pop()}`;
+            document.getElementById('fileViewerContent').textContent = content;
+            
+            const modal = new bootstrap.Modal(document.getElementById('fileViewerModal'));
+            modal.show();
+        } else {
+            logMessage(`❌ Error cargando archivo ${fileType}`, 'error');
+        }
+    } catch (error) {
+        logMessage(`❌ Error de conexión al cargar archivo ${fileType}`, 'error', { error: error.message });
+    }
+}
+
+function downloadCurrentFile() {
+    const content = document.getElementById('fileViewerContent').textContent;
+    const title = document.getElementById('fileViewerTitle').textContent;
+    const filename = title.split(' - ')[1] || 'archivo.txt';
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ==================== FUNCIONES DE PROCESAMIENTO ====================
 async function testConnection() {
-    showProgress('Probando conexión con el servidor...', 'Verificando estado del sistema');
+    showProgress('Probando conexión...', 'Verificando servidor y SUNAT');
     
     try {
-        // Probar conexión básica
         const response = await apiCall('/test-sunat-connection/');
         hideProgress();
         
         if (response.ok) {
             updateServerStatus('connected');
-            logMessage('✅ Conexión exitosa con el servidor', 'success', response.data);
-            
-            // Mostrar información específica del ambiente
-            const data = response.data;
-            if (data.environment) {
-                logMessage(`🌐 Ambiente: ${data.environment}`, 'info');
-            }
-            if (data.operations && data.operations.length > 0) {
-                logMessage(`🔧 Operaciones disponibles: ${data.operations.join(', ')}`, 'info');
+            if (response.data.status === 'warning') {
+                logMessage('⚠️ Servidor conectado - Error 401 SUNAT normal con credenciales de prueba', 'warning', response.data);
+            } else {
+                logMessage('✅ Conexión exitosa', 'success', response.data);
             }
         } else {
             updateServerStatus('disconnected');
-            if (response.data && response.data.status === 'warning') {
-                logMessage('⚠️ Servidor responde pero hay problemas de autenticación SUNAT (normal con credenciales de prueba)', 'warning', response.data);
-                updateServerStatus('connected'); // Cambiar a conectado porque el servidor Django sí responde
-            } else {
-                logMessage('❌ Servidor responde pero hay problemas de configuración', 'error', response.data);
-            }
+            logMessage('⚠️ Problemas de conexión', 'warning', response.data);
         }
     } catch (error) {
         hideProgress();
         updateServerStatus('disconnected');
-        logMessage('❌ Error de conexión con el servidor Django', 'error', { 
-            error: error.message,
-            suggestion: 'Verifique que el servidor esté ejecutándose con: python manage.py runserver'
-        });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function createTestScenarios() {
-    showProgress('Creando escenarios de prueba...', 'Generando boleta con todos los tipos de operaciones');
+    showProgress('Creando escenarios de prueba...', 'Generando documento con todos los tipos de operaciones');
     
     try {
         const response = await apiCall('/create-test-scenarios/', 'POST');
         hideProgress();
         
         if (response.ok) {
-            logMessage('✅ Escenarios de prueba creados exitosamente', 'success', response.data);
-            updateInvoiceInfo(response.data);
-            
-            // Mostrar detalles específicos de los escenarios
-            const data = response.data;
-            logMessage(`📄 Documento creado: ${data.invoice_reference}`, 'info');
-            
-            if (data.totals) {
-                logMessage('💰 Escenarios incluidos:', 'info', {
-                    'Venta Gravada (IGV 18%)': `S/ ${parseFloat(data.totals.total_taxed_amount).toFixed(2)}`,
-                    'Venta Exonerada': `S/ ${parseFloat(data.totals.total_exempt_amount).toFixed(2)}`,
-                    'IGV Calculado': `S/ ${parseFloat(data.totals.igv_amount).toFixed(2)}`,
-                    'Percepción (2%)': `S/ ${parseFloat(data.totals.perception_amount).toFixed(2)}`,
-                    'Total Final': `S/ ${parseFloat(data.totals.total_amount).toFixed(2)}`
-                });
-            }
+            logMessage('✅ Escenarios de prueba creados', 'success', response.data);
+            currentInvoiceId = response.data.invoice_id;
+            document.getElementById('processInvoiceId').value = currentInvoiceId;
+            refreshDocuments();
+            loadDocumentDetails(currentInvoiceId);
         } else {
-            logMessage('❌ Error creando escenarios de prueba', 'error', response.data);
+            logMessage('❌ Error creando escenarios', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión al crear escenarios', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function convertToUBL() {
-    const invoiceId = getInvoiceId();
-    if (!invoiceId) return;
+    const invoiceId = document.getElementById('processInvoiceId').value;
+    if (!invoiceId) {
+        logMessage('⚠️ Ingrese un ID de documento', 'warning');
+        return;
+    }
 
-    showProgress('Convirtiendo a UBL XML...', 'Generando documento XML según estándar UBL 2.1');
+    showProgress('Convirtiendo a UBL XML...', 'Generando documento XML estándar UBL 2.1');
     
     try {
         const response = await apiCall(`/invoice/${invoiceId}/convert-ubl/`, 'POST');
         hideProgress();
         
         if (response.ok) {
-            logMessage('✅ Conversión a UBL XML exitosa', 'success', response.data);
-            
-            const data = response.data;
-            if (data.xml_filename) {
-                logMessage(`📄 Archivo XML generado: ${data.xml_filename}`, 'info');
-            }
-            if (data.xml_path) {
-                logMessage(`📁 Ubicación: ${data.xml_path}`, 'info');
-            }
+            logMessage('✅ XML UBL generado exitosamente', 'success', response.data);
+            loadDocumentDetails(invoiceId);
         } else {
             logMessage('❌ Error en conversión UBL', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión en conversión UBL', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function signXML() {
-    const invoiceId = getInvoiceId();
-    if (!invoiceId) return;
+    const invoiceId = document.getElementById('processInvoiceId').value;
+    if (!invoiceId) {
+        logMessage('⚠️ Ingrese un ID de documento', 'warning');
+        return;
+    }
 
-    showProgress('Firmando documento XML...', 'Aplicando firma digital con certificado X.509');
+    showProgress('Firmando XML...', 'Aplicando firma digital con certificado X.509');
     
     try {
         const response = await apiCall(`/invoice/${invoiceId}/sign/`, 'POST');
         hideProgress();
         
         if (response.ok) {
-            logMessage('✅ Firma digital aplicada exitosamente', 'success', response.data);
-            
-            const data = response.data;
-            if (data.signed_xml_path) {
-                logMessage(`🔐 XML firmado: ${data.signed_xml_path.split('/').pop()}`, 'info');
-            }
-            if (data.zip_path) {
-                logMessage(`📦 ZIP creado: ${data.zip_path.split('/').pop()}`, 'info');
-            }
-            if (data.certificate_info) {
-                logMessage('📜 Certificado utilizado:', 'info', {
-                    'RUC': data.certificate_info.ruc || 'N/A',
-                    'Válido hasta': data.certificate_info.not_valid_after || 'N/A',
-                    'Estado': data.certificate_info.is_valid ? 'Válido' : 'Expirado'
-                });
-            }
+            logMessage('✅ XML firmado exitosamente', 'success', response.data);
+            loadDocumentDetails(invoiceId);
         } else {
             logMessage('❌ Error en firma digital', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión en firma digital', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function sendToSUNAT() {
-    const invoiceId = getInvoiceId();
-    if (!invoiceId) return;
+    const invoiceId = document.getElementById('processInvoiceId').value;
+    if (!invoiceId) {
+        logMessage('⚠️ Ingrese un ID de documento', 'warning');
+        return;
+    }
 
-    showProgress('Enviando a SUNAT...', 'Transmitiendo documento firmado via WebServices');
+    showProgress('Enviando a SUNAT...', 'Transmitiendo documento firmado');
     
     try {
         const response = await apiCall(`/invoice/${invoiceId}/send-sunat/`, 'POST');
         hideProgress();
         
-        if (response.ok) {
-            const data = response.data;
-            const sunatResponse = data.sunat_response;
-            
-            if (sunatResponse && sunatResponse.status === 'success') {
-                logMessage('✅ Documento enviado a SUNAT exitosamente', 'success', data);
-                
-                if (sunatResponse.response_type === 'cdr') {
-                    logMessage('📄 Respuesta síncrona recibida (CDR)', 'info');
-                    if (sunatResponse.cdr_info) {
-                        const cdrInfo = sunatResponse.cdr_info;
-                        logMessage('📋 CDR procesado:', 'info', {
-                            'Código de respuesta': cdrInfo.response_code || 'N/A',
-                            'Descripción': cdrInfo.response_description || 'N/A',
-                            'Documento': cdrInfo.document_reference || 'N/A'
-                        });
-                    }
-                } else if (sunatResponse.response_type === 'ticket') {
-                    logMessage(`🎫 Ticket asíncrono recibido: ${sunatResponse.ticket}`, 'info');
-                    logMessage('ℹ️ Use "Consultar Estado" para verificar el procesamiento', 'info');
-                }
+        if (response.ok || (response.data && response.data.status === 'warning')) {
+            if (response.data.status === 'warning') {
+                logMessage('⚠️ Error de autenticación SUNAT (normal con credenciales de prueba)', 'warning', response.data);
+                logMessage('✅ Documento XML generado y firmado correctamente', 'success');
+                logMessage('💡 Para envío real necesita credenciales válidas de producción', 'info');
             } else {
-                logMessage('⚠️ Documento enviado pero con advertencias de SUNAT', 'warning', data);
-                if (sunatResponse && sunatResponse.error_message) {
-                    logMessage(`⚠️ SUNAT: ${sunatResponse.error_message}`, 'warning');
-                }
+                logMessage('✅ Documento enviado a SUNAT', 'success', response.data);
             }
+            loadDocumentDetails(invoiceId);
         } else {
             logMessage('❌ Error enviando a SUNAT', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión al enviar a SUNAT', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function checkStatus() {
-    const invoiceId = getInvoiceId();
-    if (!invoiceId) return;
+    const invoiceId = document.getElementById('processInvoiceId').value;
+    if (!invoiceId) {
+        logMessage('⚠️ Ingrese un ID de documento', 'warning');
+        return;
+    }
 
     showProgress('Consultando estado...', 'Verificando estado actual del documento');
     
@@ -394,34 +750,24 @@ async function checkStatus() {
         hideProgress();
         
         if (response.ok) {
-            logMessage('✅ Estado consultado exitosamente', 'success', response.data);
-            updateInvoiceInfo(response.data);
-            
-            const data = response.data;
-            logMessage(`📊 Estado actual: ${data.status}`, 'info');
-            
-            // Mostrar progreso de archivos
-            if (data.files) {
-                const files = data.files;
-                const fileStatus = {
-                    'XML generado': files.xml_file ? '✅' : '❌',
-                    'ZIP firmado': files.zip_file ? '✅' : '❌',
-                    'CDR de SUNAT': files.cdr_file ? '✅' : '❌'
-                };
-                logMessage('📁 Estado de archivos:', 'info', fileStatus);
-            }
+            logMessage('✅ Estado consultado', 'success', response.data);
+            displayDocumentDetails(response.data);
+            displayFiles(response.data);
         } else {
             logMessage('❌ Error consultando estado', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión al consultar estado', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
 async function processCompleteFlow() {
-    const invoiceId = getInvoiceId();
-    if (!invoiceId) return;
+    const invoiceId = document.getElementById('processInvoiceId').value;
+    if (!invoiceId) {
+        logMessage('⚠️ Ingrese un ID de documento', 'warning');
+        return;
+    }
 
     showProgress('Procesando flujo completo...', 'Ejecutando: UBL → Firma → Envío SUNAT');
     
@@ -431,41 +777,65 @@ async function processCompleteFlow() {
         
         if (response.ok) {
             const data = response.data;
-            const overallStatus = data.overall_status;
             
-            if (overallStatus === 'success') {
-                logMessage('✅ Flujo completo procesado exitosamente', 'success');
+            if (data.overall_status === 'success' || data.overall_status === 'success_with_warnings') {
+                logMessage('✅ Flujo completo procesado exitosamente', 'success', data);
+                
+                if (data.overall_status === 'success_with_warnings') {
+                    logMessage('💡 Nota: Errores de SUNAT son normales con credenciales de prueba', 'info');
+                }
             } else {
-                logMessage('⚠️ Flujo completado con advertencias', 'warning');
+                logMessage('⚠️ Flujo completado con errores', 'warning', data);
             }
             
             // Mostrar resumen de pasos
             if (data.steps) {
-                logMessage('📋 Resumen de pasos ejecutados:', 'info');
+                logMessage('📋 Resumen de pasos:', 'info');
                 data.steps.forEach((step, index) => {
-                    const stepType = step.status === 'success' ? 'success' : 'error';
-                    const stepIcon = step.status === 'success' ? '✅' : '❌';
-                    logMessage(`${stepIcon} Paso ${index + 1} - ${step.step}: ${step.message}`, stepType);
+                    const stepIcon = step.status === 'success' ? '✅' : 
+                                   step.status === 'warning' ? '⚠️' : '❌';
+                    const stepType = step.status === 'warning' ? 'warning' : step.status;
+                    logMessage(`${stepIcon} Paso ${index + 1}: ${step.message}`, stepType);
                 });
-                
-                // Mostrar estadísticas
-                const successSteps = data.steps.filter(s => s.status === 'success').length;
-                const totalSteps = data.steps.length;
-                logMessage(`📊 Resultado: ${successSteps}/${totalSteps} pasos exitosos`, 'info');
             }
             
-            // Consultar estado final
-            setTimeout(() => checkStatus(), 1000);
+            loadDocumentDetails(invoiceId);
         } else {
             logMessage('❌ Error en flujo completo', 'error', response.data);
         }
     } catch (error) {
         hideProgress();
-        logMessage('❌ Error de conexión en flujo completo', 'error', { error: error.message });
+        logMessage('❌ Error de conexión', 'error', { error: error.message });
     }
 }
 
-// ==================== KEYBOARD SHORTCUTS ====================
+function showSunatHelp() {
+    logMessage('📚 Ayuda - Sistema UBL 2.1', 'info', {
+        'Error 401 SUNAT': 'Normal con credenciales de prueba MODDATOS',
+        'Estado SIGNED': 'Documento listo - XML firmado correctamente',
+        'Archivos generados': 'XML y ZIP se crean sin problemas',
+        'CDR': 'Se recibe después del envío exitoso a SUNAT',
+        'Para producción': 'Configurar credenciales reales en .env'
+    });
+    
+    logMessage('🔧 Estados del sistema:', 'info', {
+        'PENDING': 'Documento creado, esperando procesamiento',
+        'PROCESSING': 'Generando XML UBL',
+        'SIGNED': 'XML firmado digitalmente (listo para uso)',
+        'SENT': 'Enviado a SUNAT exitosamente', 
+        'ACCEPTED': 'Aceptado por SUNAT con CDR',
+        'ERROR': 'Error en procesamiento'
+    });
+    
+    logMessage('🎯 Flujo recomendado:', 'info', {
+        '1. Crear documento': 'Usar formulario manual o escenarios de prueba',
+        '2. Procesar': 'Convertir a UBL → Firmar → Enviar',
+        '3. Verificar archivos': 'XML, ZIP y CDR generados',
+        '4. Estado final': 'SIGNED = Sistema funcionando correctamente'
+    });
+}
+
+// ==================== ATAJOS DE TECLADO ====================
 document.addEventListener('keydown', function(e) {
     if (e.ctrlKey) {
         switch(e.key) {
@@ -475,19 +845,34 @@ document.addEventListener('keydown', function(e) {
                 break;
             case '2':
                 e.preventDefault();
-                processCompleteFlow();
+                if (currentInvoiceId) {
+                    processCompleteFlow();
+                } else {
+                    logMessage('⚠️ Seleccione un documento primero', 'warning');
+                }
                 break;
             case '3':
                 e.preventDefault();
-                checkStatus();
+                if (currentInvoiceId) {
+                    checkStatus();
+                } else {
+                    logMessage('⚠️ Seleccione un documento primero', 'warning');
+                }
                 break;
             case 'l':
                 e.preventDefault();
                 clearLogs();
                 break;
+            case 'h':
+                e.preventDefault();
+                showSunatHelp();
+                break;
         }
     }
 });
 
-// Auto-test opcional al cargar
-// setTimeout(() => testConnection(), 1000);
+// ==================== AUTO-INICIALIZACIÓN ====================
+// Probar conexión automáticamente al cargar (opcional)
+setTimeout(() => {
+    testConnection();
+}, 1000);

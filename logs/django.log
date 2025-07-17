@@ -201,3 +201,58 @@ WARNING 2025-07-16 22:34:26,680 log 25760 20980 Bad Request: /api/invoice/6/send
 WARNING 2025-07-16 22:34:26,680 basehttp 25760 20980 "POST /api/invoice/6/send-sunat/ HTTP/1.1" 400 57
 INFO 2025-07-16 23:29:33,565 autoreload 25760 6760 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\ubl_converter\converter.py changed, reloading.
 INFO 2025-07-16 23:29:35,298 autoreload 34312 31224 Watching for file changes with StatReloader
+INFO 2025-07-17 00:06:37,464 autoreload 22704 2376 Watching for file changes with StatReloader
+INFO 2025-07-17 00:10:05,449 autoreload 22704 2376 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\ubl_converter\converter.py changed, reloading.
+INFO 2025-07-17 00:10:06,335 autoreload 33640 25896 Watching for file changes with StatReloader
+INFO 2025-07-17 00:10:46,318 autoreload 35936 24620 Watching for file changes with StatReloader
+INFO 2025-07-17 00:13:23,828 basehttp 35936 31728 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-17 00:13:23,938 basehttp 35936 31728 "GET /static/js/ubl-tester.js HTTP/1.1" 304 0
+INFO 2025-07-17 00:13:32,091 basehttp 35936 31428 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+INFO 2025-07-17 00:13:50,600 basehttp 35936 33408 "POST /api/create-test-scenarios/ HTTP/1.1" 201 317
+WARNING 2025-07-17 00:14:00,162 log 35936 9692 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-17 00:14:00,162 basehttp 35936 9692 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-17 00:21:29,436 basehttp 35936 35956 "OPTIONS /api/invoice/7/sign/ HTTP/1.1" 200 0
+WARNING 2025-07-17 00:21:29,531 log 35936 35956 Bad Request: /api/invoice/7/sign/
+WARNING 2025-07-17 00:21:29,534 basehttp 35936 35956 "POST /api/invoice/7/sign/ HTTP/1.1" 400 62
+INFO 2025-07-17 00:21:38,570 basehttp 35936 35956 "OPTIONS /api/invoice/7/send-sunat/ HTTP/1.1" 200 0
+WARNING 2025-07-17 00:21:38,618 log 35936 35956 Bad Request: /api/invoice/7/send-sunat/
+WARNING 2025-07-17 00:21:38,618 basehttp 35936 35956 "POST /api/invoice/7/send-sunat/ HTTP/1.1" 400 57
+INFO 2025-07-17 00:22:59,995 basehttp 35936 12880 "OPTIONS /api/invoice/7/process-complete/ HTTP/1.1" 200 0
+INFO 2025-07-17 00:23:00,144 signer 35936 12880 Cargando certificado desde: media/certificates/C23022479065.pfx
+INFO 2025-07-17 00:23:00,327 signer 35936 12880 Certificado cargado exitosamente
+INFO 2025-07-17 00:23:00,328 signer 35936 12880 Iniciando firma digital para documento: 23022479065-03-B001-00000002
+INFO 2025-07-17 00:23:00,373 signer 35936 12880 Firma digital completada para documento: 23022479065-03-B001-00000002
+ERROR 2025-07-17 00:23:00,953 views 35936 12880 Error en flujo completo: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+ERROR 2025-07-17 00:23:00,954 log 35936 12880 Internal Server Error: /api/invoice/7/process-complete/
+ERROR 2025-07-17 00:23:00,955 basehttp 35936 12880 "POST /api/invoice/7/process-complete/ HTTP/1.1" 500 512
+INFO 2025-07-17 03:05:19,127 autoreload 35936 24620 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-17 03:05:22,306 autoreload 33520 20700 Watching for file changes with StatReloader
+INFO 2025-07-17 03:12:48,004 autoreload 33520 20700 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-17 03:12:50,230 autoreload 18472 29804 Watching for file changes with StatReloader
+INFO 2025-07-17 03:12:54,334 basehttp 18472 20968 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-17 03:12:54,628 basehttp 18472 20968 "GET /static/js/ubl-tester.js HTTP/1.1" 200 33696
+INFO 2025-07-17 03:12:56,790 basehttp 18472 36060 "OPTIONS /api/test-sunat-connection/ HTTP/1.1" 200 0
+INFO 2025-07-17 03:12:57,631 basehttp 18472 36060 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+INFO 2025-07-17 03:13:18,929 autoreload 27616 28488 Watching for file changes with StatReloader
+INFO 2025-07-17 03:13:20,904 basehttp 27616 23988 "GET / HTTP/1.1" 200 6855
+INFO 2025-07-17 03:13:20,989 basehttp 27616 23988 "GET /static/js/ubl-tester.js HTTP/1.1" 304 0
+WARNING 2025-07-17 03:13:25,440 log 27616 29516 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-17 03:13:25,441 basehttp 27616 29516 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-17 03:13:28,554 basehttp 27616 12744 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+INFO 2025-07-17 03:13:56,287 basehttp 27616 30172 "OPTIONS /api/create-test-scenarios/ HTTP/1.1" 200 0
+INFO 2025-07-17 03:13:56,411 basehttp 27616 30172 "POST /api/create-test-scenarios/ HTTP/1.1" 201 317
+INFO 2025-07-17 03:14:14,274 basehttp 27616 9056 "OPTIONS /api/invoice/8/convert-ubl/ HTTP/1.1" 200 0
+INFO 2025-07-17 03:14:14,350 basehttp 27616 9056 "POST /api/invoice/8/convert-ubl/ HTTP/1.1" 200 795
+INFO 2025-07-17 03:14:21,526 basehttp 27616 17128 "OPTIONS /api/invoice/8/send-sunat/ HTTP/1.1" 200 0
+WARNING 2025-07-17 03:14:21,580 log 27616 17128 Bad Request: /api/invoice/8/send-sunat/
+WARNING 2025-07-17 03:14:21,581 basehttp 27616 17128 "POST /api/invoice/8/send-sunat/ HTTP/1.1" 400 57
+INFO 2025-07-17 03:14:23,315 basehttp 27616 17128 "OPTIONS /api/invoice/8/sign/ HTTP/1.1" 200 0
+INFO 2025-07-17 03:14:23,385 signer 27616 17128 Cargando certificado desde: media/certificates/C23022479065.pfx
+INFO 2025-07-17 03:14:23,552 signer 27616 17128 Certificado cargado exitosamente
+INFO 2025-07-17 03:14:23,556 signer 27616 17128 Iniciando firma digital para documento: 23022479065-03-B001-00000003
+INFO 2025-07-17 03:14:23,572 signer 27616 17128 Firma digital completada para documento: 23022479065-03-B001-00000003
+INFO 2025-07-17 03:14:23,602 basehttp 27616 17128 "POST /api/invoice/8/sign/ HTTP/1.1" 200 912
+INFO 2025-07-17 03:14:32,109 basehttp 27616 7668 "OPTIONS /api/invoice/8/status/ HTTP/1.1" 200 0
+INFO 2025-07-17 03:14:32,159 basehttp 27616 7668 "GET /api/invoice/8/status/ HTTP/1.1" 200 711
+INFO 2025-07-17 03:31:56,777 autoreload 27616 28488 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-17 03:31:58,732 autoreload 7756 6492 Watching for file changes with StatReloader

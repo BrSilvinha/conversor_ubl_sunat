@@ -1,4 +1,4 @@
-# ubl_converter/converter.py - VERSIÓN CORREGIDA PARA EVITAR ATRIBUTOS DUPLICADOS
+# ubl_converter/converter.py - VERSIÓN CORREGIDA SIN ERRORES DE SINTAXIS
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
@@ -534,6 +534,12 @@ class UBLConverter:
         """Agrega los totales monetarios legales"""
         monetary_total = ET.SubElement(root, 'cac:LegalMonetaryTotal')
         
+        # Valor de venta - operaciones gravadas
+        if invoice.total_taxed_amount > 0:
+            taxable_amount = ET.SubElement(monetary_total, 'cbc:TaxInclusiveAmount')
+            taxable_amount.set('currencyID', invoice.currency_code)
+            taxable_amount.text = f"{invoice.total_taxed_amount:.2f}"
+        
         # Valor de venta - operaciones inafectas
         if invoice.total_unaffected_amount > 0:
             unaffected_amount = ET.SubElement(monetary_total, 'cbc:TaxExclusiveAmount')
@@ -603,10 +609,4 @@ class UBLConverter:
             
         except Exception as e:
             logger.error(f"Error creando ZIP: {str(e)}")
-            raise - operaciones gravadas
-        if invoice.total_taxed_amount > 0:
-            taxable_amount = ET.SubElement(monetary_total, 'cbc:TaxInclusiveAmount')
-            taxable_amount.set('currencyID', invoice.currency_code)
-            taxable_amount.text = f"{invoice.total_taxed_amount:.2f}"
-        
-        # Valor de venta
+            raise

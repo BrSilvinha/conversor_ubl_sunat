@@ -3,132 +3,438 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor UBL 2.1 - Panel de Pruebas</title>
+    <title>Conversor UBL 2.1 - Panel Completo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body class="bg-light">
     <div class="container-fluid">
         <!-- Header -->
-        <div class="row">
-            <div class="col-12">
-                <nav class="navbar navbar-dark bg-primary mb-4">
-                    <div class="container-fluid">
-                        <span class="navbar-brand mb-0 h1">
-                            <i class="bi bi-file-earmark-code"></i>
-                            Conversor UBL 2.1 - Panel de Pruebas
-                        </span>
-                        <span class="badge bg-light text-primary" id="server-status">Desconectado</span>
-                    </div>
-                </nav>
+        <nav class="navbar navbar-dark bg-primary mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">
+                    <i class="bi bi-file-earmark-code"></i>
+                    Conversor UBL 2.1 - Panel Completo
+                </span>
+                <div class="d-flex align-items-center">
+                    <span class="badge me-2" id="server-status">Desconectado</span>
+                    <small class="text-white" id="timestamp"></small>
+                </div>
             </div>
-        </div>
+        </nav>
 
-        <!-- Main Content -->
-        <div class="row">
-            <!-- Control Panel -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-gear"></i> Panel de Control</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Connection Test -->
-                        <div class="mb-3">
-                            <button class="btn btn-outline-primary w-100" onclick="testConnection()">
-                                <i class="bi bi-wifi"></i> Probar Conexión
-                            </button>
-                        </div>
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create-panel" type="button" role="tab">
+                    <i class="bi bi-plus-circle"></i> Crear Documento
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents-panel" type="button" role="tab">
+                    <i class="bi bi-file-text"></i> Mis Documentos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="process-tab" data-bs-toggle="tab" data-bs-target="#process-panel" type="button" role="tab">
+                    <i class="bi bi-gear"></i> Procesar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-panel" type="button" role="tab">
+                    <i class="bi bi-terminal"></i> Logs
+                </button>
+            </li>
+        </ul>
 
-                        <!-- Create Test Scenarios -->
-                        <div class="mb-3">
-                            <button class="btn btn-success w-100" onclick="createTestScenarios()">
-                                <i class="bi bi-plus-circle"></i> Crear Escenarios de Prueba
-                            </button>
-                        </div>
-
-                        <!-- Invoice ID Input -->
-                        <div class="mb-3">
-                            <label for="invoiceId" class="form-label">ID de Factura:</label>
-                            <input type="number" class="form-control" id="invoiceId" placeholder="Ingrese ID de factura">
-                        </div>
-
-                        <!-- Individual Steps -->
-                        <div class="mb-3">
-                            <h6>Pasos Individuales:</h6>
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-info btn-sm" onclick="convertToUBL()">
-                                    <i class="bi bi-file-code"></i> 1. Convertir a UBL
-                                </button>
-                                <button class="btn btn-outline-warning btn-sm" onclick="signXML()">
-                                    <i class="bi bi-shield-check"></i> 2. Firmar XML
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="sendToSUNAT()">
-                                    <i class="bi bi-send"></i> 3. Enviar a SUNAT
-                                </button>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="checkStatus()">
-                                    <i class="bi bi-search"></i> Consultar Estado
-                                </button>
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            
+            <!-- ====== TAB 1: CREAR DOCUMENTO ====== -->
+            <div class="tab-pane fade show active" id="create-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-building"></i> Datos de la Empresa</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">RUC *</label>
+                                        <input type="text" class="form-control" id="companyRuc" value="23022479065" maxlength="11">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Razón Social *</label>
+                                        <input type="text" class="form-control" id="companyName" value="EMPRESA DE PRUEBAS SAC">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" id="companyAddress" value="AV. PRINCIPAL 123, LIMA">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Complete Flow -->
-                        <div class="mb-3">
-                            <button class="btn btn-primary w-100" onclick="processCompleteFlow()">
-                                <i class="bi bi-arrow-right-circle"></i> Flujo Completo
-                            </button>
+                        <div class="card mt-3">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="bi bi-person"></i> Datos del Cliente</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Tipo Doc *</label>
+                                        <select class="form-select" id="customerDocType">
+                                            <option value="1">DNI</option>
+                                            <option value="6">RUC</option>
+                                            <option value="4">C.E.</option>
+                                            <option value="7">Pasaporte</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label">Número Documento *</label>
+                                        <input type="text" class="form-control" id="customerDocNumber" value="12345678">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre/Razón Social *</label>
+                                    <input type="text" class="form-control" id="customerName" value="CLIENTE DE PRUEBAS">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" id="customerAddress" value="AV. CLIENTE 456">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0"><i class="bi bi-receipt"></i> Datos del Documento</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Tipo *</label>
+                                        <select class="form-select" id="documentType">
+                                            <option value="01">Factura</option>
+                                            <option value="03" selected>Boleta</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Serie *</label>
+                                        <input type="text" class="form-control" id="documentSeries" value="B001" maxlength="4">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Número</label>
+                                        <input type="number" class="form-control" id="documentNumber" placeholder="Auto">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Fecha Emisión *</label>
+                                        <input type="date" class="form-control" id="issueDate">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Moneda</label>
+                                        <select class="form-select" id="currency">
+                                            <option value="PEN" selected>Soles (PEN)</option>
+                                            <option value="USD">Dólares (USD)</option>
+                                            <option value="EUR">Euros (EUR)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea class="form-control" id="observations" rows="2" placeholder="Observaciones del documento"></textarea>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Clear Logs -->
-                        <div class="mb-3">
-                            <button class="btn btn-outline-secondary w-100" onclick="clearLogs()">
-                                <i class="bi bi-trash"></i> Limpiar Logs
-                            </button>
+                        <div class="card mt-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0"><i class="bi bi-credit-card"></i> Forma de Pago</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label">Método de Pago</label>
+                                        <select class="form-select" id="paymentMethod">
+                                            <option value="009" selected>Efectivo</option>
+                                            <option value="001">Depósito en cuenta</option>
+                                            <option value="003">Transferencia</option>
+                                            <option value="008">Efectivo (sin transferencia)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Monto</label>
+                                        <input type="number" class="form-control" id="paymentAmount" step="0.01" readonly>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Current Invoice Info -->
-                <div class="card mt-3" id="invoice-info" style="display: none;">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0"><i class="bi bi-file-text"></i> Información de Factura</h6>
-                    </div>
-                    <div class="card-body" id="invoice-details">
-                        <!-- Información de la factura se mostrará aquí -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Response Panel -->
-            <div class="col-md-8">
-                <div class="card">
+                <!-- Líneas de Detalle -->
+                <div class="card mt-4">
                     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-terminal"></i> Logs de Respuesta</h5>
-                        <small id="timestamp"></small>
+                        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Líneas de Detalle</h5>
+                        <button class="btn btn-light btn-sm" onclick="addLine()">
+                            <i class="bi bi-plus"></i> Agregar Línea
+                        </button>
                     </div>
                     <div class="card-body">
-                        <div id="response-container" style="height: 600px; overflow-y: auto;">
-                            <div class="text-muted text-center p-4">
-                                <i class="bi bi-info-circle fs-1"></i>
-                                <p class="mt-2">Los resultados de las operaciones aparecerán aquí</p>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Código</th>
+                                        <th>Descripción</th>
+                                        <th>Cant.</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Tipo Imp.</th>
+                                        <th>Valor</th>
+                                        <th>IGV</th>
+                                        <th>Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="linesTableBody">
+                                    <!-- Las líneas se agregarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Totales -->
+                        <div class="row mt-3">
+                            <div class="col-md-8"></div>
+                            <div class="col-md-4">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Gravado:</strong></td>
+                                        <td class="text-end" id="totalTaxed">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Exonerado:</strong></td>
+                                        <td class="text-end" id="totalExempt">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Gratuito:</strong></td>
+                                        <td class="text-end" id="totalFree">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>IGV:</strong></td>
+                                        <td class="text-end" id="totalIGV">0.00</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>TOTAL:</strong></td>
+                                        <td class="text-end"><strong id="grandTotal">0.00</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12 text-center">
+                                <button class="btn btn-success btn-lg" onclick="createInvoice()">
+                                    <i class="bi bi-save"></i> Crear Documento
+                                </button>
+                                <button class="btn btn-primary btn-lg ms-2" onclick="loadTestScenario()">
+                                    <i class="bi bi-lightning"></i> Cargar Escenario de Prueba
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== TAB 2: MIS DOCUMENTOS ====== -->
+            <div class="tab-pane fade" id="documents-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-folder"></i> Documentos Creados</h5>
+                                <button class="btn btn-light btn-sm" onclick="refreshDocuments()">
+                                    <i class="bi bi-arrow-clockwise"></i> Actualizar
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tipo</th>
+                                                <th>Documento</th>
+                                                <th>Cliente</th>
+                                                <th>Total</th>
+                                                <th>Estado</th>
+                                                <th>Fecha</th>
+                                                <th>Archivos</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="documentsTableBody">
+                                            <!-- Los documentos se cargarán dinámicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== TAB 3: PROCESAR ====== -->
+            <div class="tab-pane fade" id="process-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0"><i class="bi bi-gear"></i> Procesar Documento</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">ID del Documento</label>
+                                    <input type="number" class="form-control" id="processInvoiceId" placeholder="Ingrese ID">
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-info" onclick="convertToUBL()">
+                                        <i class="bi bi-file-code"></i> 1. Convertir a UBL XML
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="signXML()">
+                                        <i class="bi bi-shield-check"></i> 2. Firmar XML
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="sendToSUNAT()">
+                                        <i class="bi bi-send"></i> 3. Enviar a SUNAT
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="checkStatus()">
+                                        <i class="bi bi-search"></i> Consultar Estado
+                                    </button>
+                                    <hr>
+                                    <button class="btn btn-primary" onclick="processCompleteFlow()">
+                                        <i class="bi bi-arrow-right-circle"></i> Flujo Completo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="bi bi-tools"></i> Utilidades</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" onclick="testConnection()">
+                                        <i class="bi bi-wifi"></i> Probar Conexión
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="createTestScenarios()">
+                                        <i class="bi bi-plus-circle"></i> Crear Escenarios de Prueba
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="showSunatHelp()">
+                                        <i class="bi bi-question-circle"></i> Ayuda SUNAT
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="card" id="currentDocumentCard">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-file-text"></i> Documento Actual</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="currentDocumentDetails">
+                                    <div class="text-muted text-center p-4">
+                                        <i class="bi bi-file-text fs-1"></i>
+                                        <p class="mt-2">Seleccione un documento para ver sus detalles</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visor de Archivos -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0"><i class="bi bi-folder-open"></i> Archivos Generados</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="filesViewer">
+                                    <div class="text-muted text-center p-4">
+                                        <i class="bi bi-folder fs-1"></i>
+                                        <p class="mt-2">Los archivos generados aparecerán aquí</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== TAB 4: LOGS ====== -->
+            <div class="tab-pane fade" id="logs-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-terminal"></i> Logs del Sistema</h5>
+                                <button class="btn btn-light btn-sm" onclick="clearLogs()">
+                                    <i class="bi bi-trash"></i> Limpiar
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="logsContainer" style="height: 600px; overflow-y: auto;">
+                                    <div class="text-muted text-center p-4">
+                                        <i class="bi bi-info-circle fs-1"></i>
+                                        <p class="mt-2">Los logs del sistema aparecerán aquí</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Progress Modal -->
-        <div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-body text-center p-4">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
-                        <h5 id="progress-message">Procesando...</h5>
-                        <p class="text-muted" id="progress-detail">Por favor espere</p>
+    <!-- Modals -->
+    <!-- Modal de Progreso -->
+    <div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Cargando...</span>
                     </div>
+                    <h5 id="progress-message">Procesando...</h5>
+                    <p class="text-muted" id="progress-detail">Por favor espere</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Ver Archivo -->
+    <div class="modal fade" id="fileViewerModal" tabindex="-1" aria-labelledby="fileViewerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileViewerTitle">Visor de Archivo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="fileViewerContent" class="bg-light p-3 rounded" style="max-height: 500px; overflow-y: auto;"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadCurrentFile()">
+                        <i class="bi bi-download"></i> Descargar
+                    </button>
                 </div>
             </div>
         </div>
@@ -136,7 +442,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="static/js/ubl-tester.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="/static/js/ubl-manager.js"></script>
 </body>
 </html>

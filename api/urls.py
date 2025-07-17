@@ -1,4 +1,4 @@
-# api/urls.py
+# api/urls.py - URLs ACTUALIZADAS CON NUEVAS FUNCIONALIDADES
 from django.urls import path
 from . import views
 
@@ -7,6 +7,13 @@ app_name = 'api'
 urlpatterns = [
     # Endpoints principales del conversor UBL
     path('create-test-scenarios/', views.create_invoice_test_scenarios, name='create_test_scenarios'),
+    path('create-invoice-manual/', views.create_invoice_manual, name='create_invoice_manual'),
+    
+    # Gestión de documentos
+    path('documents/', views.list_documents, name='list_documents'),
+    path('file-content/', views.get_file_content, name='get_file_content'),
+    
+    # Procesamiento de documentos
     path('invoice/<int:invoice_id>/convert-ubl/', views.convert_to_ubl, name='convert_to_ubl'),
     path('invoice/<int:invoice_id>/sign/', views.sign_xml, name='sign_xml'),
     path('invoice/<int:invoice_id>/send-sunat/', views.send_to_sunat, name='send_to_sunat'),
