@@ -1,4 +1,4 @@
-# conversor_ubl/settings.py - REEMPLAZAR COMPLETAMENTE
+# conversor_ubl/settings.py - VERSIÓN CORREGIDA CON LOGGING UTF-8
 import os
 from pathlib import Path
 from decouple import config, Csv
@@ -35,10 +35,8 @@ INSTALLED_APPS = [
     'api',
 ]
 
-# ✅ MIDDLEWARE MEJORADO - Con supresor de warnings
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'conversor_ubl.middleware.SuppressUnwantedWarningsMiddleware',  # ✅ NUEVO - Suprimir warnings
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -163,7 +161,7 @@ CORS_ALLOWED_HEADERS = [
     'x-requested-with',
 ]
 
-# ✅ LOGGING COMPLETAMENTE MEJORADO - SIN ERRORES NI WARNINGS INNECESARIOS
+# ✅ LOGGING CORREGIDO PARA WINDOWS CON UTF-8
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -176,156 +174,71 @@ LOGGING = {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
-        'minimal': {
-            'format': '{asctime} {message}',
-            'style': '{',
-        },
-    },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-        'skip_suspicious_operations': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: not any(
-                pattern in record.getMessage() for pattern in [
-                    'SuspiciousOperation',
-                    'DisallowedHost',
-                    'Invalid HTTP_HOST',
-                ]
-            )
-        },
-        'skip_unwanted_requests': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: not any(
-                pattern in record.getMessage() for pattern in [
-                    '.well-known/',
-                    'favicon.ico',
-                    'robots.txt',
-                    'apple-touch-icon',
-                    'manifest.json',
-                    'browserconfig.xml',
-                    'Broken pipe',
-                    'Connection reset by peer',
-                ]
-            )
-        },
-        'skip_sunat_auth_warnings': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: not (
-                '401' in record.getMessage() and 
-                'SUNAT' in record.getMessage() and
-                record.levelno <= 30  # WARNING level
-            )
-        },
     },
     'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'minimal',
-            'filters': ['skip_unwanted_requests', 'skip_suspicious_operations'],
-        },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'django.log',
             'formatter': 'verbose',
-            'filters': ['skip_unwanted_requests'],
+            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
         },
-        'sunat_file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler', 
-            'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
-            'formatter': 'verbose',
-            'filters': ['skip_sunat_auth_warnings'],  # ✅ Filtrar warnings 401 de SUNAT
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'ubl_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'ubl_converter.log',
             'formatter': 'verbose',
+            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
         },
-        'null': {
-            'class': 'logging.NullHandler',
+        'sunat_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
+            'formatter': 'verbose',
+            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],  # ✅ SOLO CONSOLE PARA EVITAR ERRORES
             'level': 'INFO',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['file'],
-            'level': 'ERROR',  # Solo errores críticos 500+
-            'propagate': False,
-        },
-        'django.server': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-            'filters': ['skip_unwanted_requests'],
-        },
-        'django.security': {
-            'handlers': ['null'],  # ✅ Suprimir warnings de seguridad innecesarios
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'sunat_integration': {
-            'handlers': ['sunat_file', 'console'],
-            'level': 'INFO',  # ✅ Solo INFO y superior, no DEBUG
-            'propagate': False,
+            'propagate': True,
         },
         'ubl_converter': {
             'handlers': ['ubl_file', 'console'],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
+        },
+        'sunat_integration': {
+            'handlers': ['sunat_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
         'digital_signature': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
+            'handlers': ['console'],  # ✅ SOLO CONSOLE
+            'level': 'DEBUG',
+            'propagate': True,
         },
         'api': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
+            'handlers': ['console'],  # ✅ SOLO CONSOLE
+            'level': 'DEBUG',
+            'propagate': True,
         },
-        # ✅ Suprimir logs de librerías externas ruidosas
-        'zeep': {
-            'handlers': ['null'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'urllib3': {
-            'handlers': ['null'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'requests': {
-            'handlers': ['null'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['console'],
     },
 }
 
-# ✅ SUNAT Configuration MEJORADA - Sin errores de URL
+# SUNAT Configuration
 SUNAT_CONFIG = {
-    # ✅ URLs corregidas sin ns1
     'BETA_URL': 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl',
     'PRODUCTION_URL': 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl',
     'USE_BETA': config('SUNAT_USE_BETA', default=True, cast=bool),
     'RUC': config('SUNAT_RUC', default='20000000001'),
-    'USERNAME': config('SUNAT_USERNAME', default='MODDATOS'),
+    'USERNAME': config('SUNAT_USERNAME', default='20000000001MODDATOS'),
     'PASSWORD': config('SUNAT_PASSWORD', default='MODDATOS'),
     'CERTIFICATE_PATH': config('SUNAT_CERTIFICATE_PATH', default=str(MEDIA_ROOT / 'certificates' / 'certificate.pfx')),
     'CERTIFICATE_PASSWORD': config('SUNAT_CERTIFICATE_PASSWORD', default=''),
@@ -354,21 +267,26 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# ✅ Configuración específica para desarrollo
 if DEBUG:
-    # Desactivar algunas restricciones de seguridad en desarrollo
     X_FRAME_OPTIONS = 'SAMEORIGIN'
-    
-    # IPs internas para debugging
     INTERNAL_IPS = [
         '127.0.0.1',
         'localhost',
     ]
-    
-    # ✅ Suprimir warnings de desarrollo innecesarios
-    import warnings
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
-    warnings.filterwarnings('ignore', message='.*well-known.*')
+
+# ✅ FORZAR UTF-8 EN TODO EL SISTEMA (WINDOWS)
+import locale
+import sys
+
+# Configurar la codificación del sistema
+if sys.platform.startswith('win'):
+    # Para Windows, forzar UTF-8
+    locale.setlocale(locale.LC_ALL, 'es_PE.UTF-8')
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
+# File encoding para el sistema
+FILE_CHARSET = 'utf-8'
+DEFAULT_CHARSET = 'utf-8'
 
 # Configuración de archivos de prueba
 TEST_DATA_CONFIG = {

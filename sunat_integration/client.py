@@ -1,4 +1,4 @@
-# sunat_integration/client.py - REEMPLAZAR COMPLETAMENTE
+# sunat_integration/client.py - VERSIÓN CORREGIDA
 import os
 import base64
 import zipfile
@@ -7,12 +7,13 @@ from django.conf import settings
 from zeep import Client, Settings as ZeepSettings
 from zeep.wsse.username import UsernameToken
 from zeep.exceptions import Fault, TransportError
+from zeep.transports import Transport
 import logging
 
 logger = logging.getLogger(__name__)
 
 class SUNATWebServiceClient:
-    """Cliente para los Web Services de SUNAT - VERSIÓN CORREGIDA SIN ERRORES"""
+    """Cliente para los Web Services de SUNAT"""
     
     def __init__(self):
         self.config = settings.SUNAT_CONFIG
@@ -21,66 +22,59 @@ class SUNATWebServiceClient:
         self.username = self.config['USERNAME'] 
         self.password = self.config['PASSWORD']
         
-        # ✅ CORREGIDO: URLs correctas sin ns1 y con manejo de errores
+        # URL del servicio según ambiente
         if self.use_beta:
-            self.wsdl_url = 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl'
+            self.wsdl_url = self.config['BETA_URL']
             logger.info("Usando ambiente BETA de SUNAT")
         else:
-            self.wsdl_url = 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl'
+            self.wsdl_url = self.config['PRODUCTION_URL']
             logger.info("Usando ambiente PRODUCCIÓN de SUNAT")
         
         self.client = None
         self._initialize_client()
     
     def _initialize_client(self):
-        """Inicializa el cliente SOAP con manejo mejorado de errores"""
+        """Inicializa el cliente SOAP"""
         try:
-            # Configuración de Zeep optimizada
+            # ✅ CORREGIDO: Configuración de Transport y Settings sin timeout
+            transport = Transport(timeout=30)  # timeout en Transport, no en Settings
+            
+            # Configuración de Zeep sin parámetros inválidos
             zeep_settings = ZeepSettings(
                 strict=False,
                 xml_huge_tree=True,
-                force_https=False,
-                timeout=30,
-                operation_timeout=30
+                force_https=False
             )
             
             # Crear cliente SOAP
-            logger.debug(f"Conectando a WSDL: {self.wsdl_url}")
-            self.client = Client(self.wsdl_url, settings=zeep_settings)
+            self.client = Client(
+                self.wsdl_url, 
+                settings=zeep_settings,
+                transport=transport
+            )
             
             # Configurar autenticación WS-Security
             auth_username = f"{self.ruc}{self.username}"
             self.client.wsse = UsernameToken(auth_username, self.password)
             
-            logger.info("Cliente SUNAT inicializado correctamente")
+            logger.info(f"Cliente SUNAT inicializado correctamente: {self.wsdl_url}")
             
-        except TransportError as e:
-            error_msg = str(e)
-            if "401" in error_msg or "Unauthorized" in error_msg:
-                # ✅ CORREGIDO: Tratar 401 como warning, no error crítico
-                logger.warning(f"Credenciales SUNAT no autorizadas (normal con MODDATOS en BETA): {error_msg}")
-                # No hacer raise para permitir que el sistema continúe
-            elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
-                logger.error(f"Error de conexión/timeout con SUNAT: {error_msg}")
-                raise
-            else:
-                logger.error(f"Error de transporte SUNAT: {error_msg}")
-                raise
         except Exception as e:
             logger.error(f"Error inesperado inicializando cliente SUNAT: {str(e)}")
-            # No hacer raise para errores no críticos
+            # No hacer raise para permitir que el sistema continúe
+            # raise
     
     def send_bill(self, zip_file_path, filename):
-        """Envía una factura/boleta a SUNAT con manejo robusto de errores"""
+        """
+        Envía una factura/boleta a SUNAT (método síncrono)
+        """
         try:
             logger.info(f"Enviando documento a SUNAT: {filename}")
             
-            # Verificar que el cliente esté disponible
             if not self.client:
                 return {
-                    'status': 'warning',
-                    'error_message': 'Cliente SUNAT no disponible (credenciales de prueba)',
-                    'error_type': 'client_unavailable',
+                    'status': 'error',
+                    'error_message': 'Cliente SUNAT no inicializado correctamente',
                     'filename': filename
                 }
             
@@ -97,9 +91,12 @@ class SUNATWebServiceClient:
                 contentFile=zip_base64
             )
             
-            # Procesar respuesta exitosa
+            # La respuesta de sendBill es un ZIP con el CDR
             if response:
+                # Decodificar la respuesta
                 cdr_zip_content = base64.b64decode(response)
+                
+                # Guardar CDR temporalmente para extraer información
                 cdr_info = self._extract_cdr_info(cdr_zip_content, filename)
                 
                 logger.info(f"Documento enviado exitosamente: {filename}")
@@ -107,7 +104,7 @@ class SUNATWebServiceClient:
                 return {
                     'status': 'success',
                     'response_type': 'cdr',
-                    'cdr_content': response,
+                    'cdr_content': response,  # CDR en base64
                     'cdr_info': cdr_info,
                     'filename': filename
                 }
@@ -115,6 +112,7 @@ class SUNATWebServiceClient:
                 raise Exception("No se recibió respuesta de SUNAT")
                 
         except Fault as e:
+            # Error SOAP específico
             error_msg = f"Error SOAP de SUNAT: {str(e)}"
             logger.error(f"Error SOAP enviando documento {filename}: {str(e)}")
             return {
@@ -124,26 +122,17 @@ class SUNATWebServiceClient:
                 'filename': filename
             }
         except TransportError as e:
-            error_msg = str(e)
-            if "401" in error_msg or "Unauthorized" in error_msg:
-                logger.warning(f"Error de autenticación SUNAT enviando {filename}: {error_msg}")
-                return {
-                    'status': 'warning',
-                    'error_message': 'Error de autenticación SUNAT (credenciales de prueba)',
-                    'error_type': 'auth_error',
-                    'filename': filename,
-                    'suggestion': 'Usar credenciales reales para envío a producción'
-                }
-            else:
-                logger.error(f"Error de transporte enviando documento {filename}: {error_msg}")
-                return {
-                    'status': 'error',
-                    'error_message': f"Error de conexión con SUNAT: {error_msg}",
-                    'error_type': 'transport_error',
-                    'filename': filename
-                }
+            # Error de transporte (conexión, autenticación, etc.)
+            error_msg = f"Error de conexión con SUNAT: {str(e)}"
+            logger.error(f"Error de transporte enviando documento {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'transport_error',
+                'filename': filename
+            }
         except Exception as e:
-            logger.error(f"Error inesperado enviando documento {filename}: {str(e)}")
+            logger.error(f"Error enviando documento {filename}: {str(e)}")
             return {
                 'status': 'error',
                 'error_message': str(e),
@@ -152,23 +141,27 @@ class SUNATWebServiceClient:
             }
     
     def send_summary(self, zip_file_path, filename):
-        """Envía resumen diario con manejo robusto de errores"""
+        """
+        Envía resumen diario o comunicación de baja (método asíncrono)
+        """
         try:
             logger.info(f"Enviando resumen a SUNAT: {filename}")
             
             if not self.client:
                 return {
-                    'status': 'warning',
-                    'error_message': 'Cliente SUNAT no disponible (credenciales de prueba)',
-                    'error_type': 'client_unavailable',
+                    'status': 'error',
+                    'error_message': 'Cliente SUNAT no inicializado correctamente',
                     'filename': filename
                 }
             
+            # Leer archivo ZIP
             with open(zip_file_path, 'rb') as f:
                 zip_content = f.read()
             
+            # Codificar en base64
             zip_base64 = base64.b64encode(zip_content).decode('utf-8')
             
+            # Llamar al servicio sendSummary
             ticket = self.client.service.sendSummary(
                 fileName=filename,
                 contentFile=zip_base64
@@ -186,24 +179,24 @@ class SUNATWebServiceClient:
             else:
                 raise Exception("No se recibió ticket de SUNAT")
                 
+        except Fault as e:
+            error_msg = f"Error SOAP de SUNAT: {str(e)}"
+            logger.error(f"Error SOAP enviando resumen {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'soap_fault',
+                'filename': filename
+            }
         except TransportError as e:
-            error_msg = str(e)
-            if "401" in error_msg or "Unauthorized" in error_msg:
-                logger.warning(f"Error de autenticación SUNAT enviando resumen {filename}: {error_msg}")
-                return {
-                    'status': 'warning',
-                    'error_message': 'Error de autenticación SUNAT (credenciales de prueba)',
-                    'error_type': 'auth_error',
-                    'filename': filename
-                }
-            else:
-                logger.error(f"Error de transporte enviando resumen {filename}: {error_msg}")
-                return {
-                    'status': 'error',
-                    'error_message': f"Error de conexión con SUNAT: {error_msg}",
-                    'error_type': 'transport_error',
-                    'filename': filename
-                }
+            error_msg = f"Error de conexión con SUNAT: {str(e)}"
+            logger.error(f"Error de transporte enviando resumen {filename}: {str(e)}")
+            return {
+                'status': 'error',
+                'error_message': error_msg,
+                'error_type': 'transport_error',
+                'filename': filename
+            }
         except Exception as e:
             logger.error(f"Error enviando resumen {filename}: {str(e)}")
             return {
@@ -214,17 +207,20 @@ class SUNATWebServiceClient:
             }
     
     def get_status(self, ticket):
-        """Consulta el estado de procesamiento usando ticket"""
+        """
+        Consulta el estado de procesamiento usando ticket
+        """
         try:
             logger.info(f"Consultando estado de ticket: {ticket}")
             
             if not self.client:
                 return {
-                    'status': 'warning',
-                    'error_message': 'Cliente SUNAT no disponible',
+                    'status': 'error',
+                    'error_message': 'Cliente SUNAT no inicializado correctamente',
                     'ticket': ticket
                 }
             
+            # Llamar al servicio getStatus
             response = self.client.service.getStatus(ticket=ticket)
             
             if response:
@@ -245,6 +241,7 @@ class SUNATWebServiceClient:
                     result['processing_status'] = 'completed'
                     result['description'] = 'Procesado correctamente'
                     if content:
+                        # Extraer información del CDR
                         cdr_zip_content = base64.b64decode(content)
                         result['cdr_info'] = self._extract_cdr_info(cdr_zip_content, ticket)
                 elif status_code == '98':
@@ -254,6 +251,7 @@ class SUNATWebServiceClient:
                     result['processing_status'] = 'error'
                     result['description'] = 'Procesado con errores'
                     if content:
+                        # Extraer información del error
                         error_zip_content = base64.b64decode(content)
                         result['error_info'] = self._extract_error_info(error_zip_content)
                 else:
@@ -273,14 +271,16 @@ class SUNATWebServiceClient:
             }
     
     def get_status_cdr(self, ruc, document_type, series, number):
-        """Consulta CDR de un documento específico"""
+        """
+        Consulta CDR de un documento específico
+        """
         try:
             logger.info(f"Consultando CDR: {ruc}-{document_type}-{series}-{number}")
             
             if not self.client:
                 return {
-                    'status': 'warning',
-                    'error_message': 'Cliente SUNAT no disponible'
+                    'status': 'error',
+                    'error_message': 'Cliente SUNAT no inicializado correctamente'
                 }
             
             response = self.client.service.getStatusCdr(
@@ -306,6 +306,7 @@ class SUNATWebServiceClient:
                 }
                 
                 if content and status_code in ['0001', '0002', '0003']:
+                    # Documento encontrado, extraer información del CDR
                     cdr_zip_content = base64.b64decode(content)
                     result['cdr_info'] = self._extract_cdr_info(cdr_zip_content, f"{ruc}-{document_type}-{series}-{number}")
                 
@@ -320,81 +321,34 @@ class SUNATWebServiceClient:
                 'error_message': str(e)
             }
     
-    def test_connection(self):
-        """Prueba la conexión con SUNAT con manejo robusto"""
-        try:
-            # Verificar si el cliente fue inicializado
-            if not self.client:
-                return {
-                    'status': 'warning',
-                    'message': 'Cliente SUNAT no disponible (credenciales de prueba)',
-                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
-                    'suggestion': 'Normal con credenciales MODDATOS - sistema funcional para generar XMLs'
-                }
-            
-            # Intentar obtener información del WSDL
-            operations = []
-            if hasattr(self.client, 'service'):
-                operations = list(self.client.service.__dict__.keys())
-            
-            logger.info(f"Test de conexión exitoso. Operaciones: {operations}")
-            
-            return {
-                'status': 'success',
-                'message': 'Conexión exitosa con SUNAT',
-                'operations': operations,
-                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
-                'wsdl_url': self.wsdl_url
-            }
-            
-        except TransportError as e:
-            error_msg = str(e)
-            if "401" in error_msg or "Unauthorized" in error_msg:
-                logger.info(f"Test de conexión: credenciales no autorizadas (normal en BETA): {error_msg}")
-                return {
-                    'status': 'warning',
-                    'message': 'Error de autenticación con SUNAT (normal con credenciales de prueba)',
-                    'error_details': 'Error 401 - Credenciales MODDATOS no válidas para autenticación real',
-                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
-                    'suggestion': 'Sistema funcional para generar XMLs - usar credenciales reales para envío'
-                }
-            else:
-                logger.error(f"Error de conexión SUNAT: {error_msg}")
-                return {
-                    'status': 'error',
-                    'message': f'Error de conexión: {error_msg}',
-                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
-                }
-        except Exception as e:
-            logger.error(f"Error probando conexión: {str(e)}")
-            return {
-                'status': 'error',
-                'message': f'Error inesperado: {str(e)}',
-                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
-            }
-    
     def _extract_cdr_info(self, cdr_zip_content, reference):
         """Extrae información del CDR desde un ZIP"""
         try:
+            # Crear archivo temporal
             with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
                 temp_zip.write(cdr_zip_content)
                 temp_zip_path = temp_zip.name
             
+            # Extraer contenido del ZIP
             with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
                 file_list = zip_ref.namelist()
                 if file_list:
+                    # Leer el primer archivo XML del ZIP
                     xml_filename = file_list[0]
                     with zip_ref.open(xml_filename) as xml_file:
                         xml_content = xml_file.read().decode('utf-8')
                     
+                    # Parsear XML para extraer información relevante
                     import xml.etree.ElementTree as ET
                     root = ET.fromstring(xml_content)
                     
+                    # Namespaces comunes para CDR
                     namespaces = {
                         'cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
                         'cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'
                     }
                     
+                    # Extraer información básica
                     cdr_info = {
                         'xml_filename': xml_filename,
                         'response_code': None,
@@ -404,15 +358,17 @@ class SUNATWebServiceClient:
                         'notes': []
                     }
                     
-                    # Extraer información básica
+                    # ID del proceso
                     cdr_id = root.find('.//cbc:ID', namespaces)
                     if cdr_id is not None:
                         cdr_info['process_id'] = cdr_id.text
                     
+                    # Fecha de emisión
                     issue_date = root.find('.//cbc:IssueDate', namespaces)
                     if issue_date is not None:
                         cdr_info['issue_date'] = issue_date.text
                     
+                    # Respuesta del documento
                     response = root.find('.//cac:DocumentResponse/cac:Response', namespaces)
                     if response is not None:
                         ref_id = response.find('.//cbc:ReferenceID', namespaces)
@@ -427,12 +383,15 @@ class SUNATWebServiceClient:
                         if description is not None:
                             cdr_info['response_description'] = description.text
                     
+                    # Notas adicionales
                     notes = root.findall('.//cbc:Note', namespaces)
                     for note in notes:
                         if note.text:
                             cdr_info['notes'].append(note.text)
                     
+                    # Limpiar archivo temporal
                     os.unlink(temp_zip_path)
+                    
                     return cdr_info
             
         except Exception as e:
@@ -442,6 +401,7 @@ class SUNATWebServiceClient:
     def _extract_error_info(self, error_zip_content):
         """Extrae información de errores desde un ZIP"""
         try:
+            # Similar al método anterior pero enfocado en errores
             with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
                 temp_zip.write(error_zip_content)
                 temp_zip_path = temp_zip.name
@@ -453,6 +413,7 @@ class SUNATWebServiceClient:
                     with zip_ref.open(xml_filename) as xml_file:
                         xml_content = xml_file.read().decode('utf-8')
                     
+                    # Retornar contenido XML crudo para análisis posterior
                     os.unlink(temp_zip_path)
                     
                     return {
@@ -463,3 +424,52 @@ class SUNATWebServiceClient:
         except Exception as e:
             logger.error(f"Error extrayendo información de error: {str(e)}")
             return {'error': str(e)}
+    
+    def test_connection(self):
+        """Prueba la conexión con SUNAT"""
+        try:
+            if not self.client:
+                return {
+                    'status': 'error',
+                    'message': 'Cliente SUNAT no inicializado correctamente',
+                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
+                }
+            
+            # Intentar obtener información del WSDL
+            operations = list(self.client.service.__dict__.keys())
+            logger.info(f"Conexión exitosa. Operaciones disponibles: {operations}")
+            
+            return {
+                'status': 'success',
+                'message': 'Conexión exitosa con SUNAT',
+                'operations': operations,
+                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
+                'wsdl_url': self.wsdl_url
+            }
+            
+        except TransportError as e:
+            # Error de autenticación o conexión
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                logger.warning(f"Error de autenticación SUNAT: {str(e)}")
+                return {
+                    'status': 'warning',
+                    'message': 'Error de autenticación con SUNAT (normal con credenciales de prueba)',
+                    'error_details': error_msg,
+                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN',
+                    'suggestion': 'Verifica las credenciales o usa credenciales válidas para producción'
+                }
+            else:
+                logger.error(f"Error de conexión SUNAT: {str(e)}")
+                return {
+                    'status': 'error',
+                    'message': f'Error de conexión: {str(e)}',
+                    'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
+                }
+        except Exception as e:
+            logger.error(f"Error probando conexión: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f'Error inesperado: {str(e)}',
+                'environment': 'BETA' if self.use_beta else 'PRODUCCIÓN'
+            }

@@ -500,3 +500,13 @@ INFO 2025-07-18 11:06:36,242 autoreload 23352 16876 C:\Users\jhami\OneDrive\Docu
 INFO 2025-07-18 11:06:37,547 autoreload 23896 35204 Watching for file changes with StatReloader
 INFO 2025-07-18 11:06:50,689 autoreload 23896 35204 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\conversor_ubl\settings.py changed, reloading.
 INFO 2025-07-18 11:06:51,449 autoreload 22216 5592 Watching for file changes with StatReloader
+INFO 2025-07-18 11:39:03,814 autoreload 22216 5592 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\views.py changed, reloading.
+INFO 2025-07-18 11:39:05,550 autoreload 31080 2992 Watching for file changes with StatReloader
+WARNING 2025-07-18 11:39:43,282 views 31080 36616 Intento de firmar XML sin generar para invoice 10
+INFO 2025-07-18 11:39:52,315 signer 31080 30748 Cargando certificado desde: media/certificates/C23022479065.pfx
+INFO 2025-07-18 11:39:52,420 signer 31080 30748 Certificado cargado exitosamente
+INFO 2025-07-18 11:39:52,423 signer 31080 30748 Iniciando firma digital para documento: 20000000001-03-B001-00000001
+INFO 2025-07-18 11:39:52,434 signer 31080 30748 Firma digital completada para documento: 20000000001-03-B001-00000001
+INFO 2025-07-18 11:39:52,463 views 31080 30748 XML firmado exitosamente para invoice 10
+INFO 2025-07-18 11:40:48,613 autoreload 15760 23208 Watching for file changes with StatReloader
+INFO 2025-07-18 11:42:13,623 autoreload 15760 23208 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\conversor_ubl\settings.py changed, reloading.

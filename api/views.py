@@ -69,6 +69,9 @@ def process_complete_flow(request, invoice_id):
             signed_filename = f"{invoice.full_document_name}_signed.xml"
             signed_file_path = os.path.join(settings.MEDIA_ROOT, 'xml_files', signed_filename)
             
+            # Asegurar que el directorio existe
+            os.makedirs(os.path.dirname(signed_file_path), exist_ok=True)
+            
             with open(signed_file_path, 'w', encoding='utf-8') as f:
                 f.write(signed_xml)
             
@@ -941,24 +944,52 @@ def convert_to_ubl(request, invoice_id):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def sign_xml(request, invoice_id):
-    """Firma digitalmente el XML de una factura"""
+    """Firma digitalmente el XML de una factura - VERSIÓN MEJORADA"""
     try:
         invoice = get_object_or_404(Invoice, id=invoice_id)
         
-        if not invoice.xml_file:
+        # ✅ MEJORADO: Validación más robusta
+        if not invoice.xml_file or not os.path.exists(invoice.xml_file):
+            logger.warning(f"Intento de firmar XML sin generar para invoice {invoice_id}")
             return Response({
                 'status': 'error',
-                'message': 'Primero debe generar el XML UBL'
+                'message': 'Primero debe generar el XML UBL',
+                'suggestion': 'Use el endpoint /convert-ubl/ antes de firmar',
+                'invoice_id': invoice_id,
+                'current_status': invoice.status
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        with open(invoice.xml_file, 'r', encoding='utf-8') as f:
-            xml_content = f.read()
+        # Verificar que el archivo XML existe físicamente
+        if not os.path.isfile(invoice.xml_file):
+            logger.error(f"Archivo XML no encontrado: {invoice.xml_file}")
+            return Response({
+                'status': 'error',
+                'message': 'Archivo XML no encontrado en el sistema',
+                'suggestion': 'Regenere el XML UBL',
+                'invoice_id': invoice_id
+            }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Leer contenido del XML
+        try:
+            with open(invoice.xml_file, 'r', encoding='utf-8') as f:
+                xml_content = f.read()
+        except Exception as e:
+            logger.error(f"Error leyendo archivo XML {invoice.xml_file}: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': f'Error leyendo archivo XML: {str(e)}',
+                'invoice_id': invoice_id
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Proceder con la firma
         signer = XMLDigitalSigner()
         signed_xml = signer.sign_xml(xml_content, invoice.full_document_name)
         
         signed_filename = f"{invoice.full_document_name}_signed.xml"
         signed_file_path = os.path.join(settings.MEDIA_ROOT, 'xml_files', signed_filename)
+        
+        # Asegurar que el directorio existe
+        os.makedirs(os.path.dirname(signed_file_path), exist_ok=True)
         
         with open(signed_file_path, 'w', encoding='utf-8') as f:
             f.write(signed_xml)
@@ -972,6 +1003,8 @@ def sign_xml(request, invoice_id):
         invoice.status = 'SIGNED'
         invoice.save()
         
+        logger.info(f"XML firmado exitosamente para invoice {invoice_id}")
+        
         return Response({
             'status': 'success',
             'message': 'XML firmado exitosamente',
@@ -982,23 +1015,33 @@ def sign_xml(request, invoice_id):
         })
         
     except Exception as e:
-        logger.error(f"Error firmando XML: {str(e)}")
+        logger.error(f"Error firmando XML para invoice {invoice_id}: {str(e)}")
         return Response({
             'status': 'error',
-            'message': str(e)
+            'message': f'Error interno: {str(e)}',
+            'invoice_id': invoice_id
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_to_sunat(request, invoice_id):
-    """Envía documento firmado a SUNAT"""
+    """Envía documento firmado a SUNAT - VERSIÓN MEJORADA"""
     try:
         invoice = get_object_or_404(Invoice, id=invoice_id)
         
-        if not invoice.zip_file:
+        # ✅ MEJORADO: Validación más robusta
+        if not invoice.zip_file or not os.path.exists(invoice.zip_file):
+            logger.warning(f"Intento de enviar a SUNAT sin ZIP para invoice {invoice_id}")
             return Response({
                 'status': 'error',
-                'message': 'Primero debe firmar el XML'
+                'message': 'Primero debe firmar el XML',
+                'suggestion': 'Use el endpoint /sign/ antes de enviar a SUNAT',
+                'invoice_id': invoice_id,
+                'current_status': invoice.status,
+                'available_files': {
+                    'xml_file': bool(invoice.xml_file),
+                    'zip_file': bool(invoice.zip_file)
+                }
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -1012,6 +1055,9 @@ def send_to_sunat(request, invoice_id):
             
         except Exception as sunat_error:
             error_msg = str(sunat_error)
+            logger.warning(f"Error SUNAT para invoice {invoice_id}: {error_msg}")
+            
+            # ✅ MEJORADO: Manejo especial para errores 401
             if "401" in error_msg or "Unauthorized" in error_msg:
                 invoice.status = 'SIGNED'
                 invoice.sunat_response_description = 'Error 401 - Credenciales de prueba (normal en ambiente BETA)'
@@ -1024,7 +1070,8 @@ def send_to_sunat(request, invoice_id):
                     'sunat_response': {
                         'status': 'auth_error',
                         'error_message': 'Error 401 - Credenciales MODDATOS no válidas para envío real',
-                        'note': 'El documento se generó y firmó correctamente. Error solo en envío a SUNAT.'
+                        'note': 'El documento se generó y firmó correctamente. Error solo en envío a SUNAT.',
+                        'environment': 'BETA' if settings.SUNAT_CONFIG.get('USE_BETA') else 'PRODUCCIÓN'
                     },
                     'suggestion': 'Para envío real a SUNAT necesitas credenciales válidas de producción',
                     'files_generated': {
@@ -1043,55 +1090,75 @@ def send_to_sunat(request, invoice_id):
                     'invoice_id': invoice.id
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        # Actualizar registro según respuesta exitosa
-        if response['status'] == 'success':
-            invoice.status = 'SENT'
-            
-            if response.get('response_type') == 'cdr':
-                cdr_info = response.get('cdr_info', {})
-                invoice.status = 'ACCEPTED' if cdr_info.get('response_code') == '0' else 'REJECTED'
-                invoice.sunat_response_code = cdr_info.get('response_code')
-                invoice.sunat_response_description = cdr_info.get('response_description')
+        # Procesar respuesta exitosa o de warning
+        if response and response.get('status') in ['success', 'warning']:
+            if response['status'] == 'success':
+                invoice.status = 'SENT'
                 
-                if response.get('cdr_content'):
-                    cdr_filename = f"R-{invoice.full_document_name}.zip"
-                    cdr_path = os.path.join(settings.MEDIA_ROOT, 'cdr_files', cdr_filename)
-                    os.makedirs(os.path.dirname(cdr_path), exist_ok=True)
+                if response.get('response_type') == 'cdr':
+                    cdr_info = response.get('cdr_info', {})
+                    invoice.status = 'ACCEPTED' if cdr_info.get('response_code') == '0' else 'REJECTED'
+                    invoice.sunat_response_code = cdr_info.get('response_code')
+                    invoice.sunat_response_description = cdr_info.get('response_description')
                     
-                    import base64
-                    with open(cdr_path, 'wb') as f:
-                        f.write(base64.b64decode(response['cdr_content']))
-                    
-                    invoice.cdr_file = cdr_path
+                    if response.get('cdr_content'):
+                        cdr_filename = f"R-{invoice.full_document_name}.zip"
+                        cdr_path = os.path.join(settings.MEDIA_ROOT, 'cdr_files', cdr_filename)
+                        os.makedirs(os.path.dirname(cdr_path), exist_ok=True)
+                        
+                        import base64
+                        with open(cdr_path, 'wb') as f:
+                            f.write(base64.b64decode(response['cdr_content']))
+                        
+                        invoice.cdr_file = cdr_path
                 
-            elif response.get('response_type') == 'ticket':
-                invoice.sunat_ticket = response.get('ticket')
+                elif response.get('response_type') == 'ticket':
+                    invoice.sunat_ticket = response.get('ticket')
+                
+                invoice.save()
+                
+                return Response({
+                    'status': 'success',
+                    'message': 'Documento enviado a SUNAT exitosamente',
+                    'invoice_id': invoice.id,
+                    'sunat_response': response,
+                    'invoice_status': invoice.status
+                })
             
-            invoice.save()
-            
-            return Response({
-                'status': 'success',
-                'message': 'Documento enviado a SUNAT exitosamente',
-                'invoice_id': invoice.id,
-                'sunat_response': response,
-                'invoice_status': invoice.status
-            })
+            elif response['status'] == 'warning':
+                # Manejar respuesta de warning (credenciales de prueba)
+                invoice.sunat_response_description = response.get('error_message', 'Warning de SUNAT')
+                invoice.save()
+                
+                return Response({
+                    'status': 'warning',
+                    'message': response.get('error_message', 'Warning de SUNAT'),
+                    'invoice_id': invoice.id,
+                    'suggestion': response.get('suggestion', 'Verificar credenciales'),
+                    'files_generated': {
+                        'xml_signed': bool(invoice.xml_file),
+                        'zip_created': bool(invoice.zip_file)
+                    }
+                })
         else:
+            # Error en la respuesta
+            error_msg = response.get('error_message', 'Error desconocido') if response else 'Sin respuesta de SUNAT'
             invoice.status = 'ERROR'
-            invoice.sunat_response_description = response.get('error_message')
+            invoice.sunat_response_description = error_msg
             invoice.save()
             
             return Response({
                 'status': 'error',
-                'message': response.get('error_message'),
+                'message': error_msg,
                 'invoice_id': invoice.id
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     except Exception as e:
-        logger.error(f"Error enviando a SUNAT: {str(e)}")
+        logger.error(f"Error enviando a SUNAT invoice {invoice_id}: {str(e)}")
         return Response({
             'status': 'error',
-            'message': str(e)
+            'message': f'Error interno: {str(e)}',
+            'invoice_id': invoice_id
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
