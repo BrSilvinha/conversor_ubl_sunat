@@ -43,3 +43,10 @@ INFO 2025-07-18 16:47:38,052 client Usando ambiente BETA de SUNAT
 INFO 2025-07-18 16:47:38,946 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
 INFO 2025-07-18 16:47:38,953 client Enviando documento a SUNAT: 20000000001-03-B001-00000002.zip
 ERROR 2025-07-18 16:47:39,070 client Error SOAP enviando documento 20000000001-03-B001-00000002.zip: El documento electrónico ingresado ha sido alterado - Detalle: Incorrect reference digest value
+INFO 2025-07-18 17:06:54,939 client Usando ambiente BETA de SUNAT
+INFO 2025-07-18 17:06:56,040 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
+INFO 2025-07-18 17:06:56,040 client Conexión exitosa. Operaciones disponibles: ['_client', '_binding_options', '_binding', '_operations']
+INFO 2025-07-18 17:07:27,013 client Usando ambiente BETA de SUNAT
+INFO 2025-07-18 17:07:27,946 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
+INFO 2025-07-18 17:07:27,953 client Enviando documento a SUNAT: 20000000001-03-B001-00000003.zip
+ERROR 2025-07-18 17:07:28,079 client Error SOAP enviando documento 20000000001-03-B001-00000003.zip: El documento electrónico ingresado ha sido alterado - Detalle: Incorrect reference digest value

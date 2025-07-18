@@ -13,6 +13,7 @@ from datetime import datetime, date
 from decimal import Decimal
 import urllib.parse
 import zipfile
+import xml.etree.ElementTree as ET
 
 from core.models import Company, Customer, Product
 from ubl_converter.models import Invoice, InvoiceLine, InvoicePayment
@@ -745,7 +746,7 @@ def list_documents(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_file_content(request):
-    """Obtener contenido de archivo XML, ZIP o CDR - VERSIÓN CORREGIDA"""
+    """Obtener contenido de archivo XML, ZIP o CDR - VERSIÓN ULTRA-CORREGIDA"""
     try:
         file_path = request.GET.get('path')
         if not file_path:
@@ -754,80 +755,173 @@ def get_file_content(request):
                 'message': 'Parámetro path requerido'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        logger.info(f"Intentando leer archivo: {file_path}")
+        logger.info(f"📄 Intentando leer archivo: {file_path}")
         
-        # Limpiar y normalizar el path
-        if file_path == 'true':  # Error común del frontend
+        # ✅ VALIDACIONES MEJORADAS
+        if file_path == 'true' or file_path == 'false' or len(file_path.strip()) < 3:
             return Response({
                 'status': 'error',
-                'message': 'Path inválido: true'
+                'message': f'Path inválido: "{file_path}"'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Decodificar URL y limpiar caracteres especiales
-        file_path = urllib.parse.unquote(file_path)
+        # ✅ DECODIFICACIÓN Y LIMPIEZA DE RUTA MEJORADA
+        try:
+            # Decodificar URL
+            file_path = urllib.parse.unquote(file_path)
+            
+            # Limpiar caracteres problemáticos
+            file_path = file_path.replace('\\', '/')
+            
+            # Remover caracteres extraños que pueden venir del frontend
+            file_path = ''.join(c for c in file_path if ord(c) < 127)  # Solo ASCII
+            
+            logger.info(f"📄 Ruta limpia: {file_path}")
+            
+        except Exception as decode_error:
+            logger.error(f"Error decodificando ruta: {decode_error}")
+            return Response({
+                'status': 'error',
+                'message': f'Error en formato de ruta: {str(decode_error)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Normalizar separadores de ruta
-        file_path = file_path.replace('\\', '/')
-        
-        # Si el path es absoluto, usarlo directamente, si no, construir desde MEDIA_ROOT
+        # ✅ CONSTRUCCIÓN DE RUTA COMPLETA MEJORADA
         if os.path.isabs(file_path):
             full_path = file_path
         else:
             # Remover prefijo 'media/' si existe
             if file_path.startswith('media/'):
                 file_path = file_path[6:]
+            
+            # Construir ruta completa
             full_path = os.path.join(settings.MEDIA_ROOT, file_path)
         
-        logger.info(f"Ruta completa: {full_path}")
+        # Normalizar la ruta
+        full_path = os.path.normpath(full_path)
         
+        logger.info(f"📁 Ruta completa: {full_path}")
+        
+        # ✅ VERIFICACIÓN DE EXISTENCIA CON MEJOR LOGGING
         if not os.path.exists(full_path):
-            logger.error(f"Archivo no encontrado: {full_path}")
-            return Response({
-                'status': 'error',
-                'message': f'Archivo no encontrado: {os.path.basename(full_path)}'
-            }, status=status.HTTP_404_NOT_FOUND)
+            # Intentar buscar el archivo en diferentes ubicaciones
+            alternative_paths = [
+                os.path.join(settings.MEDIA_ROOT, 'xml_files', os.path.basename(file_path)),
+                os.path.join(settings.MEDIA_ROOT, 'zip_files', os.path.basename(file_path)),
+                os.path.join(settings.MEDIA_ROOT, 'cdr_files', os.path.basename(file_path)),
+            ]
+            
+            found_path = None
+            for alt_path in alternative_paths:
+                if os.path.exists(alt_path):
+                    found_path = alt_path
+                    break
+            
+            if found_path:
+                full_path = found_path
+                logger.info(f"📁 Archivo encontrado en ruta alternativa: {full_path}")
+            else:
+                logger.error(f"❌ Archivo no encontrado en ninguna ubicación: {full_path}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Archivo no encontrado: {os.path.basename(file_path)}',
+                    'attempted_paths': [full_path] + alternative_paths
+                }, status=status.HTTP_404_NOT_FOUND)
         
-        # Determinar tipo de contenido
+        # ✅ DETERMINAR TIPO DE ARCHIVO Y PROCESAR
         file_extension = os.path.splitext(full_path)[1].lower()
+        file_size = os.path.getsize(full_path)
+        
+        logger.info(f"📄 Procesando archivo {file_extension} de {file_size} bytes")
         
         if file_extension == '.xml':
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Validar si está firmado
-            is_signed = '<ds:Signature' in content or 'http://www.w3.org/2000/09/xmldsig#' in content
-            
-            response_data = {
-                'status': 'success',
-                'content': content,
-                'file_type': 'xml',
-                'file_name': os.path.basename(full_path),
-                'is_signed': is_signed,
-                'size': len(content)
-            }
-            
-            return Response(response_data)
-            
+            # ✅ PROCESAMIENTO DE XML MEJORADO
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Validar si está firmado
+                is_signed = '<ds:Signature' in content or 'http://www.w3.org/2000/09/xmldsig#' in content
+                
+                # Validar que sea XML válido
+                try:
+                    ET.fromstring(content)
+                    is_valid_xml = True
+                except ET.ParseError:
+                    is_valid_xml = False
+                
+                response_data = {
+                    'status': 'success',
+                    'content': content,
+                    'file_type': 'xml',
+                    'file_name': os.path.basename(full_path),
+                    'is_signed': is_signed,
+                    'is_valid_xml': is_valid_xml,
+                    'size': len(content),
+                    'encoding': 'utf-8'
+                }
+                
+                logger.info(f"✅ XML cargado exitosamente: {len(content)} caracteres, firmado: {is_signed}")
+                return Response(response_data)
+                
+            except UnicodeDecodeError:
+                # Intentar con diferentes codificaciones
+                encodings = ['utf-8', 'latin-1', 'cp1252']
+                content = None
+                
+                for encoding in encodings:
+                    try:
+                        with open(full_path, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        logger.info(f"✅ XML cargado con codificación: {encoding}")
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if content is None:
+                    return Response({
+                        'status': 'error',
+                        'message': 'No se pudo leer el archivo XML con ninguna codificación'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                return Response({
+                    'status': 'success',
+                    'content': content,
+                    'file_type': 'xml',
+                    'file_name': os.path.basename(full_path),
+                    'is_signed': '<ds:Signature' in content,
+                    'size': len(content),
+                    'encoding': encoding
+                })
+                
         elif file_extension == '.zip':
-            # Para archivos ZIP, mostrar contenido
+            # ✅ PROCESAMIENTO DE ZIP MEJORADO
             zip_contents = []
+            xml_content = None
             
             try:
                 with zipfile.ZipFile(full_path, 'r') as zip_ref:
+                    # Listar contenido del ZIP
                     for file_info in zip_ref.filelist:
                         zip_contents.append({
                             'filename': file_info.filename,
                             'size': file_info.file_size,
-                            'date': f"{file_info.date_time[0]}-{file_info.date_time[1]:02d}-{file_info.date_time[2]:02d}"
+                            'compressed_size': file_info.compress_size,
+                            'date': f"{file_info.date_time[0]}-{file_info.date_time[1]:02d}-{file_info.date_time[2]:02d}",
+                            'compression_type': file_info.compress_type
                         })
                     
-                    # Si hay XML dentro, extraer y mostrar
-                    xml_files = [f for f in zip_ref.namelist() if f.endswith('.xml')]
-                    xml_content = None
+                    # Buscar archivos XML dentro del ZIP
+                    xml_files = [f for f in zip_ref.namelist() if f.lower().endswith('.xml')]
                     
                     if xml_files:
-                        with zip_ref.open(xml_files[0]) as xml_file:
-                            xml_content = xml_file.read().decode('utf-8')
+                        # Leer el primer archivo XML encontrado
+                        xml_filename = xml_files[0]
+                        try:
+                            with zip_ref.open(xml_filename) as xml_file:
+                                xml_content = xml_file.read().decode('utf-8')
+                            logger.info(f"✅ XML extraído del ZIP: {xml_filename}")
+                        except Exception as xml_error:
+                            logger.warning(f"⚠️ Error leyendo XML del ZIP: {xml_error}")
+                            xml_content = f"Error leyendo {xml_filename}: {str(xml_error)}"
                 
                 response_data = {
                     'status': 'success',
@@ -835,41 +929,73 @@ def get_file_content(request):
                     'file_name': os.path.basename(full_path),
                     'contents': zip_contents,
                     'xml_content': xml_content,
-                    'size': os.path.getsize(full_path)
+                    'size': file_size,
+                    'contains_xml': len(xml_files) > 0 if 'xml_files' in locals() else False
                 }
                 
+                logger.info(f"✅ ZIP procesado exitosamente: {len(zip_contents)} archivos")
                 return Response(response_data)
                 
             except zipfile.BadZipFile:
+                logger.error(f"❌ Archivo ZIP corrupto: {full_path}")
                 return Response({
                     'status': 'error',
-                    'message': 'Archivo ZIP corrupto'
+                    'message': 'Archivo ZIP corrupto o dañado'
                 }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as zip_error:
+                logger.error(f"❌ Error procesando ZIP: {zip_error}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Error procesando ZIP: {str(zip_error)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         else:
-            # Para otros tipos de archivo, leer como texto
+            # ✅ PROCESAMIENTO DE OTROS TIPOS DE ARCHIVO
             try:
+                # Intentar leer como texto
                 with open(full_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except UnicodeDecodeError:
-                with open(full_path, 'rb') as f:
-                    content = f.read()
-                import base64
-                content = base64.b64encode(content).decode('utf-8')
                 
-            return Response({
-                'status': 'success',
-                'content': content,
-                'file_type': 'other',
-                'file_name': os.path.basename(full_path),
-                'size': os.path.getsize(full_path)
-            })
+                return Response({
+                    'status': 'success',
+                    'content': content,
+                    'file_type': 'text',
+                    'file_name': os.path.basename(full_path),
+                    'size': file_size,
+                    'encoding': 'utf-8'
+                })
+                
+            except UnicodeDecodeError:
+                # Si no es texto, leer como binario y codificar en base64
+                try:
+                    with open(full_path, 'rb') as f:
+                        binary_content = f.read()
+                    
+                    import base64
+                    content = base64.b64encode(binary_content).decode('utf-8')
+                    
+                    return Response({
+                        'status': 'success',
+                        'content': content,
+                        'file_type': 'binary',
+                        'file_name': os.path.basename(full_path),
+                        'size': file_size,
+                        'encoding': 'base64'
+                    })
+                    
+                except Exception as binary_error:
+                    logger.error(f"❌ Error leyendo archivo binario: {binary_error}")
+                    return Response({
+                        'status': 'error',
+                        'message': f'Error leyendo archivo: {str(binary_error)}'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     except Exception as e:
-        logger.error(f"Error obteniendo contenido de archivo: {str(e)}")
+        logger.error(f"❌ Error crítico obteniendo contenido de archivo: {str(e)}")
         return Response({
             'status': 'error',
-            'message': f'Error interno: {str(e)}'
+            'message': f'Error interno del servidor: {str(e)}',
+            'path_requested': request.GET.get('path', 'N/A')
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -1224,7 +1350,6 @@ def check_sunat_status(request, invoice_id):
             'status': 'error',
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    # Agregar esta función al archivo api/views.py
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -1284,4 +1409,3 @@ def get_signature_info(request):
             'status': 'error',
             'message': f'Error interno: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    

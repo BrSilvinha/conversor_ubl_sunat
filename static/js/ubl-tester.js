@@ -1,4 +1,4 @@
-// static/js/ubl-tester.js - VERSIÓN COMPLETA FINAL CON TODAS LAS FUNCIONALIDADES
+// static/js/ubl-tester.js - VERSIÓN COMPLETA FINAL CON TODAS LAS FUNCIONALIDADES CORREGIDAS
 
 // ==================== CONFIGURACIÓN GLOBAL ULTRA-SEGURA ====================
 const API_BASE_URL = '/api';
@@ -838,6 +838,356 @@ function updateFilesViewer(files) {
     }
 }
 
+// ==================== FUNCIONES MEJORADAS PARA ARCHIVOS ====================
+async function viewFile(filePath, fileType) {
+    logMessage(`📄 Cargando archivo ${fileType}...`, 'info');
+    
+    try {
+        // ✅ VALIDACIÓN MEJORADA DE RUTA
+        if (!filePath || filePath === 'true' || filePath === 'false' || filePath.trim().length < 3) {
+            logMessage(`❌ Ruta de archivo inválida para ${fileType}: "${filePath}"`, 'error');
+            showErrorModal('Ruta de Archivo Inválida', `La ruta "${filePath}" no es válida.`);
+            return;
+        }
+        
+        logMessage(`🔍 Procesando ruta: ${filePath}`, 'info');
+        
+        // ✅ CODIFICACIÓN SEGURA DE LA URL
+        let encodedPath;
+        try {
+            // Limpiar la ruta primero
+            let cleanPath = filePath.replace(/[^\x20-\x7E]/g, ''); // Solo caracteres ASCII imprimibles
+            cleanPath = cleanPath.trim();
+            
+            // Codificar para URL
+            encodedPath = encodeURIComponent(cleanPath);
+            
+            logMessage(`🔗 Ruta codificada: ${encodedPath}`, 'info');
+        } catch (encodeError) {
+            logMessage(`❌ Error codificando ruta: ${encodeError.message}`, 'error');
+            showErrorModal('Error de Codificación', 'No se pudo procesar la ruta del archivo.');
+            return;
+        }
+        
+        // ✅ LLAMADA API MEJORADA
+        const url = `${API_BASE_URL}/file-content/?path=${encodedPath}`;
+        logMessage(`📡 Llamando API: ${url}`, 'info');
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        logMessage(`📊 Respuesta API: ${response.status} ${response.statusText}`, 'info');
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            logMessage(`❌ Error HTTP ${response.status}: ${errorText}`, 'error');
+            showErrorModal('Error del Servidor', `Error ${response.status}: ${response.statusText}`);
+            return;
+        }
+        
+        // ✅ PROCESAMIENTO DE RESPUESTA MEJORADO
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            logMessage(`❌ Error parseando JSON: ${jsonError.message}`, 'error');
+            showErrorModal('Error de Respuesta', 'La respuesta del servidor no es válida.');
+            return;
+        }
+        
+        if (data.status === 'success') {
+            currentFileContent = data.content;
+            showFileViewerModal(data, fileType, filePath);
+            logMessage(`✅ Archivo ${fileType} cargado exitosamente (${formatBytes(data.size || 0)})`, 'success');
+        } else {
+            logMessage(`❌ Error cargando archivo ${fileType}: ${data.message}`, 'error');
+            showErrorModal('Error Cargando Archivo', data.message || 'Error desconocido');
+        }
+        
+    } catch (error) {
+        logMessage(`❌ Error de conexión al cargar archivo ${fileType}: ${error.message}`, 'error');
+        showErrorModal('Error de Conexión', `No se pudo conectar con el servidor: ${error.message}`);
+    }
+}
+
+function showFileViewerModal(data, fileType, filePath) {
+    try {
+        const modal = document.getElementById('fileViewerModal');
+        const title = document.getElementById('fileViewerTitle');
+        const content = document.getElementById('fileViewerContent');
+        
+        if (!modal || !title || !content) {
+            logMessage('❌ Elementos del modal no encontrados', 'error');
+            return;
+        }
+        
+        // ✅ TÍTULO MEJORADO CON INFORMACIÓN DETALLADA
+        let titleHtml = `<i class="bi bi-file-code"></i> Visor de Archivo - ${fileType}`;
+        
+        if (data.is_signed) {
+            titleHtml += ' <span class="badge bg-success ms-2"><i class="bi bi-shield-check"></i> Firmado</span>';
+        }
+        
+        if (data.is_valid_xml === false) {
+            titleHtml += ' <span class="badge bg-warning ms-2"><i class="bi bi-exclamation-triangle"></i> XML Inválido</span>';
+        }
+        
+        if (data.encoding && data.encoding !== 'utf-8') {
+            titleHtml += ` <span class="badge bg-info ms-2">${data.encoding.toUpperCase()}</span>`;
+        }
+        
+        title.innerHTML = titleHtml;
+        
+        // ✅ CONTENIDO PROCESADO SEGÚN TIPO DE ARCHIVO
+        let htmlContent = '';
+        
+        if (data.file_type === 'xml') {
+            htmlContent = generateXMLContent(data, filePath);
+        } else if (data.file_type === 'zip') {
+            htmlContent = generateZIPContent(data);
+        } else if (data.file_type === 'binary') {
+            htmlContent = generateBinaryContent(data);
+        } else {
+            htmlContent = generateTextContent(data);
+        }
+        
+        content.innerHTML = htmlContent;
+        
+        // ✅ MOSTRAR MODAL CON BOOTSTRAP
+        if (typeof bootstrap !== 'undefined') {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            // Fallback si Bootstrap no está disponible
+            modal.style.display = 'block';
+            modal.classList.add('show');
+        }
+        
+    } catch (error) {
+        logMessage(`❌ Error mostrando modal de archivo: ${error.message}`, 'error');
+        showErrorModal('Error del Modal', 'No se pudo mostrar el visor de archivos.');
+    }
+}
+
+function generateXMLContent(data, filePath) {
+    let content = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="badge ${data.is_signed ? 'bg-success' : 'bg-secondary'}">
+                    ${data.is_signed ? '🔒 XML Firmado' : '📄 XML Sin Firmar'}
+                </span>
+                <span class="badge bg-info">${formatBytes(data.size)}</span>
+                ${data.is_valid_xml === false ? '<span class="badge bg-warning">⚠️ XML Inválido</span>' : ''}
+            </div>
+            <div class="btn-group">`;
+    
+    if (data.is_signed) {
+        content += `
+                <button class="btn btn-sm btn-outline-primary" onclick="showSignatureInfo('${filePath}')">
+                    <i class="bi bi-shield-check"></i> Ver Firma
+                </button>`;
+    }
+    
+    content += `
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard()">
+                    <i class="bi bi-clipboard"></i> Copiar
+                </button>
+            </div>
+        </div>`;
+    
+    // ✅ CONTENIDO XML FORMATEADO Y RESALTADO
+    const formattedXML = formatXML(data.content);
+    content += `
+        <pre class="bg-light p-3 rounded xml-viewer" style="max-height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4;">
+            <code class="language-xml">${escapeHtml(formattedXML)}</code>
+        </pre>`;
+    
+    return content;
+}
+
+function generateZIPContent(data) {
+    let content = `
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-archive fs-4 me-2"></i>
+            <div>
+                <strong>Archivo ZIP:</strong> ${data.file_name}<br>
+                <small>Tamaño: ${formatBytes(data.size)} | Archivos: ${data.contents ? data.contents.length : 0}</small>
+            </div>
+        </div>`;
+    
+    if (data.contents && data.contents.length > 0) {
+        content += '<h6>📋 Contenido del ZIP:</h6>';
+        content += '<div class="table-responsive">';
+        content += '<table class="table table-sm table-striped">';
+        content += '<thead><tr><th>Archivo</th><th>Tamaño</th><th>Comprimido</th><th>Fecha</th><th>Tipo</th></tr></thead>';
+        content += '<tbody>';
+        
+        data.contents.forEach(file => {
+            const fileIcon = getFileIcon(file.filename);
+            const compressionRatio = file.size > 0 ? ((file.size - file.compressed_size) / file.size * 100).toFixed(1) : 0;
+            
+            content += `
+                <tr>
+                    <td><i class="${fileIcon}"></i> ${escapeHtml(file.filename)}</td>
+                    <td>${formatBytes(file.size)}</td>
+                    <td>${formatBytes(file.compressed_size)} <small class="text-muted">(${compressionRatio}%)</small></td>
+                    <td>${file.date}</td>
+                    <td><span class="badge bg-secondary">${getFileExtension(file.filename).toUpperCase()}</span></td>
+                </tr>`;
+        });
+        
+        content += '</tbody></table></div>';
+    }
+    
+    if (data.xml_content) {
+        content += `
+            <div class="mt-3">
+                <h6>📄 XML dentro del ZIP:</h6>
+                <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px;">
+                    <code class="language-xml">${escapeHtml(formatXML(data.xml_content))}</code>
+                </pre>
+            </div>`;
+    }
+    
+    return content;
+}
+
+function generateBinaryContent(data) {
+    return `
+        <div class="alert alert-warning">
+            <i class="bi bi-file-binary fs-4"></i>
+            <strong>Archivo Binario</strong><br>
+            Este archivo contiene datos binarios y no puede mostrarse como texto.<br>
+            <small>Tamaño: ${formatBytes(data.size)} | Codificación: ${data.encoding}</small>
+        </div>
+        <div class="text-center mt-3">
+            <button class="btn btn-primary" onclick="downloadCurrentFile()">
+                <i class="bi bi-download"></i> Descargar Archivo
+            </button>
+        </div>`;
+}
+
+function generateTextContent(data) {
+    return `
+        <div class="mb-2">
+            <span class="badge bg-info">${formatBytes(data.size)}</span>
+            <span class="badge bg-secondary">${data.encoding || 'UTF-8'}</span>
+        </div>
+        <pre class="bg-light p-3 rounded" style="max-height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px;">
+            <code>${escapeHtml(data.content)}</code>
+        </pre>`;
+}
+
+// ✅ FUNCIONES AUXILIARES MEJORADAS
+function getFileIcon(filename) {
+    const ext = getFileExtension(filename).toLowerCase();
+    const iconMap = {
+        'xml': 'bi-file-code text-primary',
+        'txt': 'bi-file-text text-secondary',
+        'pdf': 'bi-file-pdf text-danger',
+        'zip': 'bi-file-zip text-warning',
+        'rar': 'bi-file-zip text-warning'
+    };
+    return iconMap[ext] || 'bi-file text-muted';
+}
+
+function getFileExtension(filename) {
+    return filename.split('.').pop() || '';
+}
+
+function copyToClipboard() {
+    if (currentFileContent) {
+        navigator.clipboard.writeText(currentFileContent).then(() => {
+            logMessage('📋 Contenido copiado al portapapeles', 'success');
+        }).catch(err => {
+            logMessage('❌ Error copiando al portapapeles', 'error');
+            // Fallback para navegadores que no soportan clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = currentFileContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                logMessage('📋 Contenido copiado al portapapeles (método alternativo)', 'success');
+            } catch (fallbackErr) {
+                logMessage('❌ No se pudo copiar al portapapeles', 'error');
+            }
+            document.body.removeChild(textArea);
+        });
+    } else {
+        logMessage('❌ No hay contenido para copiar', 'warning');
+    }
+}
+
+function showErrorModal(title, message) {
+    // Crear modal de error si no existe
+    let errorModal = document.getElementById('errorModal');
+    if (!errorModal) {
+        errorModal = createErrorModal();
+    }
+    
+    document.getElementById('errorModalTitle').textContent = title;
+    document.getElementById('errorModalBody').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle fs-4"></i>
+            <div class="mt-2">${escapeHtml(message)}</div>
+        </div>`;
+    
+    if (typeof bootstrap !== 'undefined') {
+        const bootstrapModal = new bootstrap.Modal(errorModal);
+        bootstrapModal.show();
+    }
+}
+
+function createErrorModal() {
+    const modalHtml = `
+        <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="errorModalTitle">Error</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="errorModalBody">
+                        <!-- Contenido del error -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    return document.getElementById('errorModal');
+}
+
+function downloadCurrentFile() {
+    if (currentFileContent) {
+        try {
+            const blob = new Blob([currentFileContent], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'archivo_descargado.xml';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            logMessage('📥 Archivo descargado exitosamente', 'success');
+        } catch (error) {
+            logMessage(`❌ Error descargando archivo: ${error.message}`, 'error');
+        }
+    } else {
+        logMessage('❌ No hay archivo para descargar', 'warning');
+    }
+}
+
 // ==================== NUEVA FUNCIÓN: MOSTRAR INFORMACIÓN DE FIRMA ====================
 async function showSignatureInfo(filePath) {
     logMessage('🔐 Cargando información de la firma digital...', 'info');
@@ -996,121 +1346,6 @@ function getAlgorithmName(algorithmUrl) {
 function downloadSignatureReport() {
     // TODO: Implementar descarga de reporte
     logMessage('📄 Función de descarga de reporte pendiente de implementar', 'info');
-}
-
-// ==================== FUNCIONES MEJORADAS PARA ARCHIVOS ====================
-async function viewFile(filePath, fileType) {
-    logMessage(`📄 Cargando archivo ${fileType}...`, 'info');
-    
-    try {
-        if (!filePath || filePath === 'true' || filePath === 'false' || filePath.trim().length < 3) {
-            logMessage(`❌ Ruta de archivo inválida para ${fileType}: "${filePath}"`, 'error');
-            return;
-        }
-        
-        const response = await fetch(`${API_BASE_URL}/file-content/?path=${encodeURIComponent(filePath)}`);
-        
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                currentFileContent = data.content;
-                showFileViewerModal(data, fileType, filePath);
-                logMessage(`✅ Archivo ${fileType} cargado exitosamente`, 'success');
-            } else {
-                logMessage(`❌ Error cargando archivo ${fileType}: ${data.message}`, 'error');
-            }
-        } else {
-            logMessage(`❌ Error HTTP ${response.status} cargando archivo ${fileType}`, 'error');
-        }
-    } catch (error) {
-        logMessage(`❌ Error de conexión al cargar archivo ${fileType}`, 'error', { error: error.message });
-    }
-}
-
-function showFileViewerModal(data, fileType, filePath) {
-    try {
-        const modal = document.getElementById('fileViewerModal');
-        const title = document.getElementById('fileViewerTitle');
-        const content = document.getElementById('fileViewerContent');
-        
-        if (modal && title && content) {
-            title.innerHTML = `
-                <i class="bi bi-file-code"></i> Visor de Archivo - ${fileType}
-                ${data.is_signed ? '<span class="badge bg-success ms-2">Firmado</span>' : ''}
-            `;
-            
-            let htmlContent = '';
-            
-            if (data.file_type === 'xml') {
-                htmlContent = `
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <span class="badge ${data.is_signed ? 'bg-success' : 'bg-secondary'}">
-                                ${data.is_signed ? 'XML Firmado' : 'XML Sin Firmar'}
-                            </span>
-                            <span class="badge bg-info">${formatBytes(data.size)}</span>
-                        </div>
-                        ${data.is_signed ? `
-                            <button class="btn btn-sm btn-outline-primary" onclick="showSignatureInfo('${filePath}')">
-                                <i class="bi bi-shield-check"></i> Ver Firma
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-                htmlContent += `<pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code class="language-xml">${escapeHtml(formatXML(data.content))}</code></pre>`;
-            } else if (data.file_type === 'zip') {
-                htmlContent = '<div class="alert alert-info">Contenido del ZIP:</div>';
-                if (data.contents) {
-                    htmlContent += '<ul class="list-group list-group-flush">';
-                    data.contents.forEach(file => {
-                        htmlContent += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-file-text"></i> ${file.filename}</span>
-                            <span class="badge bg-secondary">${formatBytes(file.size)}</span>
-                        </li>`;
-                    });
-                    htmlContent += '</ul>';
-                }
-                if (data.xml_content) {
-                    htmlContent += `
-                        <div class="mt-3">
-                            <h6>XML dentro del ZIP:</h6>
-                            <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"><code class="language-xml">${escapeHtml(formatXML(data.xml_content))}</code></pre>
-                        </div>
-                    `;
-                }
-            } else {
-                htmlContent = `<pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>${escapeHtml(data.content)}</code></pre>`;
-            }
-            
-            content.innerHTML = htmlContent;
-            
-            if (typeof bootstrap !== 'undefined') {
-                const bootstrapModal = new bootstrap.Modal(modal);
-                bootstrapModal.show();
-            }
-        }
-    } catch (error) {
-        safeLog('Error mostrando modal de archivo:', 'error', error);
-        logMessage('❌ Error mostrando archivo', 'error');
-    }
-}
-
-function downloadCurrentFile() {
-    if (currentFileContent) {
-        const blob = new Blob([currentFileContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'archivo.xml';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        logMessage('📥 Archivo descargado', 'success');
-    } else {
-        logMessage('❌ No hay archivo para descargar', 'error');
-    }
 }
 
 // ==================== FUNCIONES DE UTILIDAD ====================
