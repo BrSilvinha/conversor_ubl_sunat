@@ -476,3 +476,27 @@ INFO 2025-07-17 13:43:17,844 autoreload 30440 21808 C:\Users\jhami\OneDrive\Docu
 INFO 2025-07-17 13:43:20,488 autoreload 35048 8348 Watching for file changes with StatReloader
 INFO 2025-07-17 13:43:24,767 autoreload 35048 8348 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\api\urls.py changed, reloading.
 INFO 2025-07-17 13:43:25,501 autoreload 35424 23600 Watching for file changes with StatReloader
+INFO 2025-07-18 03:37:46,782 basehttp 35424 23208 "GET / HTTP/1.1" 200 25401
+INFO 2025-07-18 03:37:47,006 basehttp 35424 23208 "GET /static/js/ubl-tester.js HTTP/1.1" 200 48476
+INFO 2025-07-18 03:37:48,244 basehttp 35424 23248 "GET /api/documents/ HTTP/1.1" 200 1283
+INFO 2025-07-18 03:37:49,304 basehttp 35424 23208 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+WARNING 2025-07-18 03:37:50,120 log 35424 23208 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-18 03:37:50,121 basehttp 35424 23208 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-18 03:38:06,522 autoreload 23352 16876 Watching for file changes with StatReloader
+INFO 2025-07-18 03:38:10,073 basehttp 23352 22276 "GET / HTTP/1.1" 200 25401
+INFO 2025-07-18 03:38:11,308 basehttp 23352 20596 "GET /api/documents/ HTTP/1.1" 200 1283
+INFO 2025-07-18 03:38:11,916 basehttp 23352 22276 "GET /api/test-sunat-connection/ HTTP/1.1" 200 326
+WARNING 2025-07-18 03:38:13,616 log 23352 22276 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-07-18 03:38:13,617 basehttp 23352 22276 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3649
+INFO 2025-07-18 09:56:10,839 basehttp 23352 30392 "GET /api/invoice/9/status/ HTTP/1.1" 200 460
+WARNING 2025-07-18 09:56:13,161 log 23352 11752 Bad Request: /api/invoice/9/sign/
+WARNING 2025-07-18 09:56:13,162 basehttp 23352 11752 "POST /api/invoice/9/sign/ HTTP/1.1" 400 62
+INFO 2025-07-18 09:56:24,156 basehttp 23352 12444 "POST /api/create-test-scenarios/ HTTP/1.1" 201 318
+INFO 2025-07-18 09:56:24,221 basehttp 23352 12444 "GET /api/documents/ HTTP/1.1" 200 1596
+INFO 2025-07-18 09:56:34,504 basehttp 23352 17832 "GET /api/invoice/10/status/ HTTP/1.1" 200 466
+WARNING 2025-07-18 09:56:40,109 log 23352 17832 Bad Request: /api/invoice/9/sign/
+WARNING 2025-07-18 09:56:40,110 basehttp 23352 17832 "POST /api/invoice/9/sign/ HTTP/1.1" 400 62
+INFO 2025-07-18 11:06:36,242 autoreload 23352 16876 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\sunat_integration\client.py changed, reloading.
+INFO 2025-07-18 11:06:37,547 autoreload 23896 35204 Watching for file changes with StatReloader
+INFO 2025-07-18 11:06:50,689 autoreload 23896 35204 C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\conversor_ubl\settings.py changed, reloading.
+INFO 2025-07-18 11:06:51,449 autoreload 22216 5592 Watching for file changes with StatReloader

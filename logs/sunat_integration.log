@@ -2,3 +2,7 @@ INFO 2025-07-17 11:57:34,243 client 30440 21388 Usando ambiente BETA de SUNAT
 ERROR 2025-07-17 11:57:34,695 client 30440 21388 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
 INFO 2025-07-17 12:00:39,457 client 30440 20868 Usando ambiente BETA de SUNAT
 ERROR 2025-07-17 12:00:39,853 client 30440 20868 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+INFO 2025-07-18 03:37:48,195 client 35424 23208 Usando ambiente BETA de SUNAT
+ERROR 2025-07-18 03:37:49,302 client 35424 23208 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService.xsd2.xsd
+INFO 2025-07-18 03:38:11,296 client 23352 22276 Usando ambiente BETA de SUNAT
+ERROR 2025-07-18 03:38:11,916 client 23352 22276 Error inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl

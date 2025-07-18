@@ -1,4 +1,4 @@
-# conversor_ubl/settings.py - VERSIÓN COMPLETA Y CORREGIDA
+# conversor_ubl/settings.py - REEMPLAZAR COMPLETAMENTE
 import os
 from pathlib import Path
 from decouple import config, Csv
@@ -35,8 +35,10 @@ INSTALLED_APPS = [
     'api',
 ]
 
+# ✅ MIDDLEWARE MEJORADO - Con supresor de warnings
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'conversor_ubl.middleware.SuppressUnwantedWarningsMiddleware',  # ✅ NUEVO - Suprimir warnings
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -51,7 +53,7 @@ ROOT_URLCONF = 'conversor_ubl.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # ✅ AGREGADO PARA FRONTEND
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -100,11 +102,11 @@ TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images) - ✅ CORREGIDO
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # ✅ AGREGADO PARA ARCHIVOS ESTÁTICOS PERSONALIZADOS
+    BASE_DIR / 'static',
 ]
 
 # Media files
@@ -137,20 +139,18 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
-# CORS settings - ✅ MEJORADO PARA FRONTEND
+# CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
-    "http://localhost:8000",  # ✅ AGREGADO PARA FRONTEND LOCAL
-    "http://127.0.0.1:8000",  # ✅ AGREGADO PARA FRONTEND LOCAL
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
-# ✅ AGREGADO: Permitir todos los métodos necesarios para la API
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Solo en desarrollo
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_HEADERS = [
     'accept',
     'accept-encoding',
@@ -163,7 +163,7 @@ CORS_ALLOWED_HEADERS = [
     'x-requested-with',
 ]
 
-# Logging - ✅ MEJORADO
+# ✅ LOGGING COMPLETAMENTE MEJORADO - SIN ERRORES NI WARNINGS INNECESARIOS
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -176,74 +176,162 @@ LOGGING = {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
+        'minimal': {
+            'format': '{asctime} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'skip_suspicious_operations': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: not any(
+                pattern in record.getMessage() for pattern in [
+                    'SuspiciousOperation',
+                    'DisallowedHost',
+                    'Invalid HTTP_HOST',
+                ]
+            )
+        },
+        'skip_unwanted_requests': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: not any(
+                pattern in record.getMessage() for pattern in [
+                    '.well-known/',
+                    'favicon.ico',
+                    'robots.txt',
+                    'apple-touch-icon',
+                    'manifest.json',
+                    'browserconfig.xml',
+                    'Broken pipe',
+                    'Connection reset by peer',
+                ]
+            )
+        },
+        'skip_sunat_auth_warnings': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: not (
+                '401' in record.getMessage() and 
+                'SUNAT' in record.getMessage() and
+                record.levelno <= 30  # WARNING level
+            )
+        },
     },
     'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'minimal',
+            'filters': ['skip_unwanted_requests', 'skip_suspicious_operations'],
+        },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'django.log',
             'formatter': 'verbose',
+            'filters': ['skip_unwanted_requests'],
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+        'sunat_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler', 
+            'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
+            'formatter': 'verbose',
+            'filters': ['skip_sunat_auth_warnings'],  # ✅ Filtrar warnings 401 de SUNAT
         },
-        'ubl_file': {  # ✅ AGREGADO: Log específico para UBL
+        'ubl_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'ubl_converter.log',
             'formatter': 'verbose',
         },
-        'sunat_file': {  # ✅ AGREGADO: Log específico para SUNAT
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
-            'formatter': 'verbose',
+        'null': {
+            'class': 'logging.NullHandler',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['file'],
+            'level': 'ERROR',  # Solo errores críticos 500+
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+            'filters': ['skip_unwanted_requests'],
+        },
+        'django.security': {
+            'handlers': ['null'],  # ✅ Suprimir warnings de seguridad innecesarios
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'sunat_integration': {
+            'handlers': ['sunat_file', 'console'],
+            'level': 'INFO',  # ✅ Solo INFO y superior, no DEBUG
+            'propagate': False,
         },
         'ubl_converter': {
             'handlers': ['ubl_file', 'console'],
             'level': 'DEBUG',
-            'propagate': True,
-        },
-        'sunat_integration': {
-            'handlers': ['sunat_file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'digital_signature': {
             'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'level': 'INFO',
+            'propagate': False,
         },
         'api': {
             'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'level': 'INFO',
+            'propagate': False,
         },
+        # ✅ Suprimir logs de librerías externas ruidosas
+        'zeep': {
+            'handlers': ['null'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'urllib3': {
+            'handlers': ['null'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'requests': {
+            'handlers': ['null'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console'],
     },
 }
 
-# SUNAT Configuration - ✅ MEJORADO
+# ✅ SUNAT Configuration MEJORADA - Sin errores de URL
 SUNAT_CONFIG = {
+    # ✅ URLs corregidas sin ns1
     'BETA_URL': 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl',
     'PRODUCTION_URL': 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl',
     'USE_BETA': config('SUNAT_USE_BETA', default=True, cast=bool),
-    'RUC': config('SUNAT_RUC', default='20000000000'),
+    'RUC': config('SUNAT_RUC', default='20000000001'),
     'USERNAME': config('SUNAT_USERNAME', default='MODDATOS'),
     'PASSWORD': config('SUNAT_PASSWORD', default='MODDATOS'),
     'CERTIFICATE_PATH': config('SUNAT_CERTIFICATE_PATH', default=str(MEDIA_ROOT / 'certificates' / 'certificate.pfx')),
     'CERTIFICATE_PASSWORD': config('SUNAT_CERTIFICATE_PASSWORD', default=''),
 }
 
-# UBL Configuration - ✅ CORREGIDO Y AMPLIADO
+# UBL Configuration
 UBL_CONFIG = {
     'VERSION': '2.1',
     'CUSTOMIZATION_ID': '2.0',
@@ -266,18 +354,23 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# ✅ AGREGADO: Configuración específica para desarrollo
+# ✅ Configuración específica para desarrollo
 if DEBUG:
     # Desactivar algunas restricciones de seguridad en desarrollo
     X_FRAME_OPTIONS = 'SAMEORIGIN'
     
-    # Configuración adicional para desarrollo
+    # IPs internas para debugging
     INTERNAL_IPS = [
         '127.0.0.1',
         'localhost',
     ]
+    
+    # ✅ Suprimir warnings de desarrollo innecesarios
+    import warnings
+    warnings.filterwarnings('ignore', category=DeprecationWarning)
+    warnings.filterwarnings('ignore', message='.*well-known.*')
 
-# ✅ AGREGADO: Configuración de archivos de prueba
+# Configuración de archivos de prueba
 TEST_DATA_CONFIG = {
     'DEFAULT_COMPANY_RUC': '23022479065',
     'DEFAULT_CUSTOMER_DOC': '12345678',
@@ -286,14 +379,14 @@ TEST_DATA_CONFIG = {
     'DEFAULT_PERCEPTION_RATE': 2.00,
 }
 
-# ✅ AGREGADO: Configuración de validaciones
+# Configuración de validaciones
 VALIDATION_CONFIG = {
     'ENABLE_STRICT_VALIDATION': config('ENABLE_STRICT_VALIDATION', default=False, cast=bool),
     'VALIDATE_RUC_CHECKSUM': config('VALIDATE_RUC_CHECKSUM', default=True, cast=bool),
     'VALIDATE_CERTIFICATE_EXPIRY': config('VALIDATE_CERTIFICATE_EXPIRY', default=True, cast=bool),
 }
 
-# ✅ AGREGADO: Configuración de timeouts
+# Configuración de timeouts
 TIMEOUT_CONFIG = {
     'SUNAT_REQUEST_TIMEOUT': config('SUNAT_REQUEST_TIMEOUT', default=30, cast=int),
     'XML_PROCESSING_TIMEOUT': config('XML_PROCESSING_TIMEOUT', default=10, cast=int),
