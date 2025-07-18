@@ -333,8 +333,8 @@
                                     <button class="btn btn-outline-primary" onclick="testConnection()">
                                         <i class="bi bi-wifi"></i> Probar Conexión
                                     </button>
-                                    <button class="btn btn-outline-success" onclick="createTestScenarios()">
-                                        <i class="bi bi-plus-circle"></i> Crear Escenarios de Prueba
+                                    <button class="btn btn-outline-success" onclick="createTestDocument()">
+                                        <i class="bi bi-plus-circle"></i> Crear Documento de Prueba
                                     </button>
                                     <button class="btn btn-outline-info" onclick="showSunatHelp()">
                                         <i class="bi bi-question-circle"></i> Ayuda SUNAT
@@ -434,6 +434,35 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button type="button" class="btn btn-primary" onclick="downloadCurrentFile()">
                         <i class="bi bi-download"></i> Descargar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Información de Firma Digital -->
+    <div class="modal fade" id="signatureInfoModal" tabindex="-1" aria-labelledby="signatureInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="signatureInfoModalLabel">
+                        <i class="bi bi-shield-check"></i> Información de la Firma Digital
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="signatureInfoModalBody">
+                    <!-- El contenido se cargará dinámicamente -->
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando información de la firma...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadSignatureReport()">
+                        <i class="bi bi-download"></i> Descargar Reporte
                     </button>
                 </div>
             </div>

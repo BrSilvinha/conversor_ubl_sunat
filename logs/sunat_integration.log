@@ -29,3 +29,17 @@ INFO 2025-07-18 13:15:17,278 client Usando ambiente BETA de SUNAT
 INFO 2025-07-18 13:15:18,180 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
 INFO 2025-07-18 13:15:18,181 client Enviando documento a SUNAT: 20000000001-03-B001-00000001.zip
 ERROR 2025-07-18 13:15:18,323 client Error SOAP enviando documento 20000000001-03-B001-00000001.zip: El documento electrónico ingresado ha sido alterado - Detalle: Incorrect reference digest value
+INFO 2025-07-18 16:40:32,896 client Usando ambiente BETA de SUNAT
+ERROR 2025-07-18 16:40:33,684 client Error inesperado inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+INFO 2025-07-18 16:40:50,615 client Usando ambiente BETA de SUNAT
+ERROR 2025-07-18 16:40:51,240 client Error inesperado inicializando cliente SUNAT: 401 Client Error: Unauthorized for url: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?ns1.wsdl
+INFO 2025-07-18 16:42:52,980 client Usando ambiente BETA de SUNAT
+INFO 2025-07-18 16:42:53,897 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
+INFO 2025-07-18 16:42:53,897 client Conexión exitosa. Operaciones disponibles: ['_client', '_binding_options', '_binding', '_operations']
+INFO 2025-07-18 16:46:46,241 client Usando ambiente BETA de SUNAT
+INFO 2025-07-18 16:46:47,167 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
+INFO 2025-07-18 16:46:47,167 client Conexión exitosa. Operaciones disponibles: ['_client', '_binding_options', '_binding', '_operations']
+INFO 2025-07-18 16:47:38,052 client Usando ambiente BETA de SUNAT
+INFO 2025-07-18 16:47:38,946 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
+INFO 2025-07-18 16:47:38,953 client Enviando documento a SUNAT: 20000000001-03-B001-00000002.zip
+ERROR 2025-07-18 16:47:39,070 client Error SOAP enviando documento 20000000001-03-B001-00000002.zip: El documento electrónico ingresado ha sido alterado - Detalle: Incorrect reference digest value

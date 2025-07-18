@@ -1,4 +1,5 @@
-# api/urls.py - URLs ACTUALIZADAS CON VALIDACIÓN DE FIRMA
+# api/urls.py - AGREGAR ESTA LÍNEA A LAS URLs EXISTENTES
+
 from django.urls import path
 from . import views
 
@@ -23,6 +24,9 @@ urlpatterns = [
     
     # Validación de firma digital
     path('validate-signature/', views.validate_xml_signature, name='validate_signature'),
+    
+    # ✅ NUEVO: Información detallada de la firma
+    path('signature-info/', views.get_signature_info, name='get_signature_info'),
     
     # Utilidades
     path('test-sunat-connection/', views.test_sunat_connection, name='test_sunat_connection'),

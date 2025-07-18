@@ -1,4 +1,4 @@
-# digital_signature/signer.py - VERSIÓN CORREGIDA
+# digital_signature/signer.py - VERSIÓN CORREGIDA PARA HASH CONSISTENTE
 import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -108,11 +108,13 @@ class XMLDigitalSigner:
             raise
     
     def _create_signature_element(self, root, document_id):
-        """Crea el elemento de firma XML-DSig"""
-        # Calcular hash del documento (sin la firma)
+        """Crea el elemento de firma XML-DSig - VERSIÓN CORREGIDA"""
+        # ✅ CORREGIDO: Usar SHA-1 consistentemente (estándar para UBL/SUNAT)
         root_copy = self._remove_signature_elements(root)
         canonical_xml = self._canonicalize_xml(root_copy)
-        document_hash = hashlib.sha256(canonical_xml.encode('utf-8')).digest()
+        
+        # ✅ USAR SHA-1 para el digest (compatible con SUNAT)
+        document_hash = hashlib.sha1(canonical_xml.encode('utf-8')).digest()
         digest_value = base64.b64encode(document_hash).decode('utf-8')
         
         # Crear elemento Signature
@@ -139,7 +141,7 @@ class XMLDigitalSigner:
         transform = ET.SubElement(transforms, '{http://www.w3.org/2000/09/xmldsig#}Transform')
         transform.set('Algorithm', 'http://www.w3.org/2000/09/xmldsig#enveloped-signature')
         
-        # DigestMethod
+        # DigestMethod - ✅ CORREGIDO: Usar SHA-1 consistentemente
         digest_method = ET.SubElement(reference, '{http://www.w3.org/2000/09/xmldsig#}DigestMethod')
         digest_method.set('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1')
         
@@ -147,10 +149,11 @@ class XMLDigitalSigner:
         digest_value_elem = ET.SubElement(reference, '{http://www.w3.org/2000/09/xmldsig#}DigestValue')
         digest_value_elem.text = digest_value
         
-        # Firmar el SignedInfo
-        signed_info_xml = ET.tostring(signed_info, encoding='unicode')
+        # ✅ CORREGIDO: Canonicalizar SignedInfo correctamente antes de firmar
+        signed_info_xml = self._canonicalize_element(signed_info)
         signed_info_hash = hashlib.sha1(signed_info_xml.encode('utf-8')).digest()
         
+        # Firmar el hash del SignedInfo
         signature_value = self.private_key.sign(
             signed_info_hash,
             padding.PKCS1v15(),
@@ -188,14 +191,33 @@ class XMLDigitalSigner:
         return root_copy
     
     def _canonicalize_xml(self, element):
-        """Canonicaliza el XML según C14N"""
-        # Implementación básica de canonicalización
+        """Canonicaliza el XML según C14N - VERSIÓN MEJORADA"""
+        # Convertir a string sin declaración XML
         xml_str = ET.tostring(element, encoding='unicode')
         
-        # Remover espacios innecesarios y normalizar
+        # Normalización básica C14N
+        import re
+        
+        # Remover espacios entre elementos
+        xml_str = re.sub(r'>\s+<', '><', xml_str)
+        
+        # Normalizar espacios en atributos
+        xml_str = re.sub(r'\s+', ' ', xml_str)
+        
+        # Remover espacios al inicio y final
+        xml_str = xml_str.strip()
+        
+        return xml_str
+    
+    def _canonicalize_element(self, element):
+        """Canonicaliza un elemento específico"""
+        # Para SignedInfo, usar canonicalización más estricta
+        xml_str = ET.tostring(element, encoding='unicode')
+        
+        # Eliminar espacios y saltos de línea entre elementos
         import re
         xml_str = re.sub(r'>\s+<', '><', xml_str)
-        xml_str = re.sub(r'\s+', ' ', xml_str)
+        xml_str = re.sub(r'\n\s*', '', xml_str)
         xml_str = xml_str.strip()
         
         return xml_str
@@ -235,7 +257,7 @@ class XMLDigitalSigner:
                 return False, "No se encontró SignedInfo"
             
             # Calcular hash del SignedInfo
-            signed_info_xml = ET.tostring(signed_info, encoding='unicode')
+            signed_info_xml = self._canonicalize_element(signed_info)
             signed_info_hash = hashlib.sha1(signed_info_xml.encode('utf-8')).digest()
             
             # Verificar la firma
@@ -253,6 +275,86 @@ class XMLDigitalSigner:
                 
         except Exception as e:
             return False, f"Error verificando firma: {str(e)}"
+    
+    def extract_signature_info(self, signed_xml):
+        """Extrae información detallada de la firma para mostrar en el frontend"""
+        try:
+            root = ET.fromstring(signed_xml)
+            
+            # Buscar el elemento Signature
+            signature = root.find('.//{http://www.w3.org/2000/09/xmldsig#}Signature')
+            if signature is None:
+                return None
+            
+            signature_info = {
+                'signature_found': True,
+                'signature_id': signature.get('Id', 'N/A'),
+                'algorithms': {},
+                'certificate_info': {},
+                'digest_info': {},
+                'signature_value': None
+            }
+            
+            # Extraer algoritmos
+            canon_method = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}CanonicalizationMethod')
+            if canon_method is not None:
+                signature_info['algorithms']['canonicalization'] = canon_method.get('Algorithm', 'N/A')
+            
+            sig_method = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}SignatureMethod')
+            if sig_method is not None:
+                signature_info['algorithms']['signature'] = sig_method.get('Algorithm', 'N/A')
+            
+            digest_method = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}DigestMethod')
+            if digest_method is not None:
+                signature_info['algorithms']['digest'] = digest_method.get('Algorithm', 'N/A')
+            
+            # Extraer valor del digest
+            digest_value = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}DigestValue')
+            if digest_value is not None:
+                signature_info['digest_info']['value'] = digest_value.text[:50] + '...' if len(digest_value.text) > 50 else digest_value.text
+            
+            # Extraer SignatureValue
+            sig_value_elem = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}SignatureValue')
+            if sig_value_elem is not None:
+                sig_text = sig_value_elem.text
+                signature_info['signature_value'] = sig_text[:50] + '...' if len(sig_text) > 50 else sig_text
+            
+            # Extraer información del certificado
+            cert_elem = signature.find('.//{http://www.w3.org/2000/09/xmldsig#}X509Certificate')
+            if cert_elem is not None:
+                try:
+                    cert_der = base64.b64decode(cert_elem.text)
+                    certificate = x509.load_der_x509_certificate(cert_der, default_backend())
+                    
+                    subject = certificate.subject
+                    issuer = certificate.issuer
+                    
+                    # Extraer RUC del subject
+                    ruc = None
+                    for attribute in subject:
+                        if attribute.oid._name == 'organizationalUnitName':
+                            ruc = attribute.value
+                            break
+                    
+                    signature_info['certificate_info'] = {
+                        'subject': str(subject),
+                        'issuer': str(issuer),
+                        'not_valid_before': certificate.not_valid_before.strftime('%Y-%m-%d %H:%M:%S'),
+                        'not_valid_after': certificate.not_valid_after.strftime('%Y-%m-%d %H:%M:%S'),
+                        'serial_number': str(certificate.serial_number),
+                        'ruc': ruc,
+                        'is_valid': certificate.not_valid_after > datetime.now()
+                    }
+                except Exception as e:
+                    signature_info['certificate_info']['error'] = f"Error procesando certificado: {str(e)}"
+            
+            return signature_info
+            
+        except Exception as e:
+            return {
+                'signature_found': False,
+                'error': f"Error extrayendo información de firma: {str(e)}"
+            }
     
     def get_certificate_info(self):
         """Obtiene información del certificado cargado"""

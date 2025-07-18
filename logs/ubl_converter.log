@@ -14,3 +14,11 @@ INFO 2025-07-18 13:15:17,142 converter Conversión UBL completada para 200000000
 INFO 2025-07-18 13:15:17,144 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000001.xml
 INFO 2025-07-18 13:15:17,276 converter ZIP creado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000001.zip
 INFO 2025-07-18 13:15:17,277 converter XML dentro del ZIP: 20000000001-03-B001-00000001.xml
+INFO 2025-07-18 16:47:16,040 converter Iniciando conversión UBL para 20000000001-03-B001-00000002
+INFO 2025-07-18 16:47:16,065 converter Conversión UBL completada para 20000000001-03-B001-00000002
+INFO 2025-07-18 16:47:16,065 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000002.xml
+INFO 2025-07-18 16:47:19,552 converter Iniciando conversión UBL para 20000000001-03-B001-00000002
+INFO 2025-07-18 16:47:19,552 converter Conversión UBL completada para 20000000001-03-B001-00000002
+INFO 2025-07-18 16:47:19,552 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000002.xml
+INFO 2025-07-18 16:47:24,121 converter ZIP creado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000002.zip
+INFO 2025-07-18 16:47:24,122 converter XML dentro del ZIP: 20000000001-03-B001-00000002.xml

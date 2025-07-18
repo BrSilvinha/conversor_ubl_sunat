@@ -1224,3 +1224,64 @@ def check_sunat_status(request, invoice_id):
             'status': 'error',
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # Agregar esta función al archivo api/views.py
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_signature_info(request):
+    """Extrae y devuelve información detallada de la firma digital de un XML"""
+    try:
+        xml_content = request.data.get('xml_content')
+        file_path = request.data.get('file_path')
+        
+        # Obtener contenido XML
+        if xml_content:
+            xml_data = xml_content
+        elif file_path:
+            # Leer desde archivo
+            if not os.path.exists(file_path):
+                return Response({
+                    'status': 'error',
+                    'message': 'Archivo XML no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                xml_data = f.read()
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'Se requiere xml_content o file_path'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        from digital_signature.signer import XMLDigitalSigner
+        signer = XMLDigitalSigner()
+        
+        # Extraer información de la firma
+        signature_info = signer.extract_signature_info(xml_data)
+        
+        if not signature_info:
+            return Response({
+                'status': 'error',
+                'message': 'No se pudo extraer información de la firma'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar la firma
+        is_valid, validation_message = signer.verify_signature(xml_data)
+        
+        return Response({
+            'status': 'success',
+            'signature_info': signature_info,
+            'validation': {
+                'is_valid': is_valid,
+                'message': validation_message
+            },
+            'has_signature': signature_info.get('signature_found', False)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo información de firma: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
