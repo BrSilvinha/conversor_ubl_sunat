@@ -1,7 +1,21 @@
-# conversor_ubl/settings.py - VERSIÓN CORREGIDA CON LOGGING UTF-8
+# conversor_ubl/settings.py - VERSIÓN CORREGIDA PARA WINDOWS UTF-8
 import os
+import sys
 from pathlib import Path
 from decouple import config, Csv
+
+# ✅ CONFIGURACIÓN UTF-8 MEJORADA PARA WINDOWS
+# Configurar codificación del sistema ANTES de todo
+if sys.platform.startswith('win'):
+    # Forzar UTF-8 en Windows
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+    # Configurar la consola de Windows para UTF-8
+    try:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except:
+        pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -111,12 +125,24 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Crear directorios necesarios si no existen
-os.makedirs(MEDIA_ROOT / 'xml_files', exist_ok=True)
-os.makedirs(MEDIA_ROOT / 'zip_files', exist_ok=True)
-os.makedirs(MEDIA_ROOT / 'cdr_files', exist_ok=True)
-os.makedirs(MEDIA_ROOT / 'certificates', exist_ok=True)
-os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+# ✅ CREAR DIRECTORIOS CON MANEJO DE ERRORES MEJORADO
+def create_media_dirs():
+    """Crear directorios de media con manejo de errores"""
+    dirs_to_create = [
+        MEDIA_ROOT / 'xml_files',
+        MEDIA_ROOT / 'zip_files', 
+        MEDIA_ROOT / 'cdr_files',
+        MEDIA_ROOT / 'certificates',
+        BASE_DIR / 'logs'
+    ]
+    
+    for dir_path in dirs_to_create:
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except Exception as e:
+            print(f"Warning: No se pudo crear directorio {dir_path}: {e}")
+
+create_media_dirs()
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -161,7 +187,7 @@ CORS_ALLOWED_HEADERS = [
     'x-requested-with',
 ]
 
-# ✅ LOGGING CORREGIDO PARA WINDOWS CON UTF-8
+# ✅ LOGGING COMPLETAMENTE CORREGIDO PARA WINDOWS
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -174,62 +200,82 @@ LOGGING = {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
+        'utf8_safe': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
-        },
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+            'stream': sys.stdout,
+        },
+        'safe_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django_safe.log',
+            'formatter': 'utf8_safe',
+            'encoding': 'utf-8',
+            'maxBytes': 1024*1024*5,  # 5MB
+            'backupCount': 3,
         },
         'ubl_file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': BASE_DIR / 'logs' / 'ubl_converter.log',
-            'formatter': 'verbose',
-            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
+            'formatter': 'utf8_safe',
+            'encoding': 'utf-8',
+            'maxBytes': 1024*1024*5,  # 5MB
+            'backupCount': 3,
         },
         'sunat_file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': BASE_DIR / 'logs' / 'sunat_integration.log',
-            'formatter': 'verbose',
-            'encoding': 'utf-8',  # ✅ AGREGADO: Forzar UTF-8
+            'formatter': 'utf8_safe',
+            'encoding': 'utf-8',
+            'maxBytes': 1024*1024*5,  # 5MB
+            'backupCount': 3,
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],  # ✅ SOLO CONSOLE PARA EVITAR ERRORES
+            'handlers': ['console'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'ubl_converter': {
             'handlers': ['ubl_file', 'console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'sunat_integration': {
             'handlers': ['sunat_file', 'console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'digital_signature': {
-            'handlers': ['console'],  # ✅ SOLO CONSOLE
+            'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'api': {
-            'handlers': ['console'],  # ✅ SOLO CONSOLE
+            'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
+    'root': {
+        'handlers': ['safe_file'],
+        'level': 'WARNING',
+    }
 }
 
 # SUNAT Configuration
@@ -238,7 +284,7 @@ SUNAT_CONFIG = {
     'PRODUCTION_URL': 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl',
     'USE_BETA': config('SUNAT_USE_BETA', default=True, cast=bool),
     'RUC': config('SUNAT_RUC', default='20000000001'),
-    'USERNAME': config('SUNAT_USERNAME', default='20000000001MODDATOS'),
+    'USERNAME': config('SUNAT_USERNAME', default='MODDATOS'),
     'PASSWORD': config('SUNAT_PASSWORD', default='MODDATOS'),
     'CERTIFICATE_PATH': config('SUNAT_CERTIFICATE_PATH', default=str(MEDIA_ROOT / 'certificates' / 'certificate.pfx')),
     'CERTIFICATE_PASSWORD': config('SUNAT_CERTIFICATE_PASSWORD', default=''),
@@ -274,17 +320,7 @@ if DEBUG:
         'localhost',
     ]
 
-# ✅ FORZAR UTF-8 EN TODO EL SISTEMA (WINDOWS)
-import locale
-import sys
-
-# Configurar la codificación del sistema
-if sys.platform.startswith('win'):
-    # Para Windows, forzar UTF-8
-    locale.setlocale(locale.LC_ALL, 'es_PE.UTF-8')
-    os.environ['PYTHONIOENCODING'] = 'utf-8'
-
-# File encoding para el sistema
+# ✅ CONFIGURACIÓN DE ARCHIVOS UTF-8 FORZADA
 FILE_CHARSET = 'utf-8'
 DEFAULT_CHARSET = 'utf-8'
 

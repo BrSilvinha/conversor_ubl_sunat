@@ -1,4 +1,4 @@
-# ubl_converter/converter.py - VERSIÓN CORREGIDA SIN ERRORES DE SINTAXIS
+# ubl_converter/converter.py - VERSIÓN CORREGIDA PARA NOMBRES DE ARCHIVO CONSISTENTES
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
@@ -8,6 +8,7 @@ import zipfile
 from django.conf import settings
 from django.utils import timezone
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class UBLConverter:
         self.version = settings.UBL_CONFIG['VERSION']
         self.customization_id = settings.UBL_CONFIG['CUSTOMIZATION_ID']
         
-        # ✅ CORREGIDO: Registrar namespaces sin duplicados y de forma más limpia
+        # Registrar namespaces sin duplicados
         self._register_namespaces()
     
     def _register_namespaces(self):
@@ -56,10 +57,10 @@ class UBLConverter:
             else:
                 raise ValueError(f"Tipo de documento no soportado: {invoice.document_type}")
             
-            # ✅ CORREGIDO: Crear elemento raíz de forma más limpia
+            # Crear elemento raíz
             root = ET.Element(root_element)
             
-            # ✅ CORREGIDO: Agregar namespaces sin duplicados usando un mapa limpio
+            # Agregar namespaces sin duplicados
             self._add_namespaces_to_root(root)
             
             # UBL Extensions (para firma digital)
@@ -93,7 +94,6 @@ class UBLConverter:
     
     def _add_namespaces_to_root(self, root):
         """Agrega namespaces al elemento raíz de forma controlada"""
-        # ✅ CORREGIDO: Mapa único de namespaces sin duplicados
         namespace_declarations = [
             ('xmlns', 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2'),
             ('xmlns:cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'),
@@ -105,9 +105,8 @@ class UBLConverter:
             ('xmlns:udt', 'urn:un:unece:uncefact:data:specification:UnqualifiedDataTypesSchemaModule:2')
         ]
         
-        # Agregar cada namespace una sola vez
         for attr_name, attr_value in namespace_declarations:
-            if attr_name not in root.attrib:  # ✅ Verificar que no existe antes de agregar
+            if attr_name not in root.attrib:
                 root.set(attr_name, attr_value)
     
     def _add_ubl_extensions(self, root):
@@ -124,7 +123,6 @@ class UBLConverter:
         # Extensión para firma digital (se agregará después del firmado)
         ubl_ext_sign = ET.SubElement(ext_elem, 'ext:UBLExtension')
         ext_content_sign = ET.SubElement(ubl_ext_sign, 'ext:ExtensionContent')
-        # El contenido de la firma se agregará por el servicio de firma digital
     
     def _add_basic_document_info(self, root, invoice):
         """Agrega información básica del documento"""
@@ -138,7 +136,6 @@ class UBLConverter:
         
         # Profile ID
         profile = ET.SubElement(root, 'cbc:ProfileID')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         profile_attrs = [
             ('schemeName', 'Tipo de Operacion'),
             ('schemeAgencyName', 'PE:SUNAT'),
@@ -168,7 +165,6 @@ class UBLConverter:
         
         # Tipo de documento
         doc_type = ET.SubElement(root, 'cbc:InvoiceTypeCode')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         doc_type_attrs = [
             ('listAgencyName', 'PE:SUNAT'),
             ('listName', 'Tipo de Documento'),
@@ -186,7 +182,6 @@ class UBLConverter:
         
         # Moneda
         currency = ET.SubElement(root, 'cbc:DocumentCurrencyCode')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         currency_attrs = [
             ('listID', 'ISO 4217 Alpha'),
             ('listName', 'Currency'),
@@ -205,7 +200,6 @@ class UBLConverter:
         # Identificación del proveedor
         party_id = ET.SubElement(party, 'cac:PartyIdentification')
         id_elem = ET.SubElement(party_id, 'cbc:ID')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         id_attrs = [
             ('schemeID', '6'),
             ('schemeName', 'Documento de Identidad'),
@@ -283,7 +277,6 @@ class UBLConverter:
         # Identificación del cliente
         party_id = ET.SubElement(party, 'cac:PartyIdentification')
         id_elem = ET.SubElement(party_id, 'cbc:ID')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         customer_id_attrs = [
             ('schemeID', customer.document_type),
             ('schemeName', 'Documento de Identidad'),
@@ -312,7 +305,6 @@ class UBLConverter:
             # Cantidad
             quantity_elem = ET.SubElement(invoice_line, 'cbc:InvoicedQuantity')
             quantity_elem.text = str(line.quantity)
-            # ✅ CORREGIDO: Agregar atributos sin duplicar
             quantity_attrs = [
                 ('unitCode', line.unit_code),
                 ('unitCodeListID', 'UN/ECE rec 20'),
@@ -335,7 +327,6 @@ class UBLConverter:
                 price_amount.set('currencyID', invoice.currency_code)
                 price_amount.text = f"{line.reference_price:.2f}"
                 price_type = ET.SubElement(alt_price, 'cbc:PriceTypeCode')
-                # ✅ CORREGIDO: Agregar atributos sin duplicar
                 price_type_attrs = [
                     ('listName', 'Tipo de Precio'),
                     ('listAgencyName', 'PE:SUNAT'),
@@ -344,7 +335,7 @@ class UBLConverter:
                 for attr_name, attr_value in price_type_attrs:
                     if attr_name not in price_type.attrib:
                         price_type.set(attr_name, attr_value)
-                price_type.text = '01'  # Precio unitario (incluye el IGV)
+                price_type.text = '01'
             
             # Información de impuestos por línea
             self._add_line_tax_totals(invoice_line, line, invoice.currency_code)
@@ -362,7 +353,6 @@ class UBLConverter:
             # Clasificación del item
             commodity_class = ET.SubElement(item, 'cac:CommodityClassification')
             item_class_code = ET.SubElement(commodity_class, 'cbc:ItemClassificationCode')
-            # ✅ CORREGIDO: Agregar atributos sin duplicar
             class_attrs = [
                 ('listID', 'UNSPSC'),
                 ('listAgencyName', 'GS1 US'),
@@ -371,7 +361,7 @@ class UBLConverter:
             for attr_name, attr_value in class_attrs:
                 if attr_name not in item_class_code.attrib:
                     item_class_code.set(attr_name, attr_value)
-            item_class_code.text = '10000000'  # Código genérico
+            item_class_code.text = '10000000'
             
             # Precio unitario
             price = ET.SubElement(invoice_line, 'cac:Price')
@@ -427,7 +417,6 @@ class UBLConverter:
         
         # Código de categoría
         tax_category_code = ET.SubElement(tax_category, 'cbc:ID')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         tax_cat_attrs = [
             ('schemeID', 'UN/ECE 5305'),
             ('schemeName', 'Tax Category Identifier'),
@@ -446,7 +435,6 @@ class UBLConverter:
         # Código de exoneración (si aplica)
         if line.tax_exemption_reason_code and line.tax_category_code in ['E', 'O']:
             exemption_reason = ET.SubElement(tax_category, 'cbc:TaxExemptionReasonCode')
-            # ✅ CORREGIDO: Agregar atributos sin duplicar
             exemption_attrs = [
                 ('listAgencyName', 'PE:SUNAT'),
                 ('listName', 'Afectacion del IGV'),
@@ -460,7 +448,6 @@ class UBLConverter:
         # Esquema de impuesto
         tax_scheme = ET.SubElement(tax_category, 'cac:TaxScheme')
         scheme_id = ET.SubElement(tax_scheme, 'cbc:ID')
-        # ✅ CORREGIDO: Agregar atributos sin duplicar
         scheme_attrs = [
             ('schemeName', 'Codigo de tributos'),
             ('schemeAgencyName', 'PE:SUNAT'),
@@ -580,33 +567,71 @@ class UBLConverter:
         return '\n'.join(lines)
     
     def save_xml_to_file(self, xml_content, filename):
-        """Guarda el XML en un archivo"""
+        """Guarda el XML en un archivo - VERSIÓN CORREGIDA"""
         try:
-            file_path = os.path.join(settings.MEDIA_ROOT, 'xml_files', filename)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            # ✅ ASEGURAR NOMBRE DE ARCHIVO CONSISTENTE Y LIMPIO
+            clean_filename = self._clean_filename(filename)
+            file_path = Path(settings.MEDIA_ROOT) / 'xml_files' / clean_filename
             
+            # Crear directorio si no existe
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Guardar archivo con encoding UTF-8 explícito
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(xml_content)
             
             logger.info(f"XML guardado en: {file_path}")
-            return file_path
+            return str(file_path)
             
         except Exception as e:
             logger.error(f"Error guardando XML: {str(e)}")
             raise
     
     def create_zip_file(self, xml_file_path, zip_filename):
-        """Crea un archivo ZIP con el XML"""
+        """Crea un archivo ZIP con el XML - VERSIÓN CORREGIDA PARA NOMBRES CONSISTENTES"""
         try:
-            zip_path = os.path.join(settings.MEDIA_ROOT, 'zip_files', zip_filename)
-            os.makedirs(os.path.dirname(zip_path), exist_ok=True)
+            # ✅ LIMPIAR NOMBRES DE ARCHIVO PARA EVITAR ERRORES SUNAT
+            clean_zip_filename = self._clean_filename(zip_filename)
+            zip_path = Path(settings.MEDIA_ROOT) / 'zip_files' / clean_zip_filename
+            
+            # Crear directorio si no existe
+            zip_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # ✅ CRÍTICO: Asegurar que el nombre del XML dentro del ZIP coincida con el nombre del ZIP
+            xml_path = Path(xml_file_path)
+            
+            # Calcular el nombre del XML que debe ir dentro del ZIP
+            # El nombre debe ser consistente con el nombre del ZIP pero con extensión .xml
+            xml_name_in_zip = clean_zip_filename.replace('.zip', '.xml')
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                zipf.write(xml_file_path, os.path.basename(xml_file_path))
+                # ✅ USAR EL NOMBRE CORRECTO DENTRO DEL ZIP
+                zipf.write(xml_path, xml_name_in_zip)
             
             logger.info(f"ZIP creado en: {zip_path}")
-            return zip_path
+            logger.info(f"XML dentro del ZIP: {xml_name_in_zip}")
+            return str(zip_path)
             
         except Exception as e:
             logger.error(f"Error creando ZIP: {str(e)}")
             raise
+    
+    def _clean_filename(self, filename):
+        """Limpia el nombre de archivo para evitar caracteres problemáticos"""
+        if not filename:
+            return filename
+        
+        # Remover caracteres problemáticos y asegurar que solo contenga ASCII
+        clean_name = filename.encode('ascii', 'ignore').decode('ascii')
+        
+        # Remover espacios y caracteres especiales
+        clean_name = ''.join(c for c in clean_name if c.isalnum() or c in '.-_')
+        
+        # Asegurar que termina con la extensión correcta
+        if not clean_name.endswith('.xml') and not clean_name.endswith('.zip'):
+            if 'xml' in filename.lower():
+                clean_name += '.xml'
+            elif 'zip' in filename.lower():
+                clean_name += '.zip'
+        
+        return clean_name
