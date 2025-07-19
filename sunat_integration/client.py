@@ -33,9 +33,7 @@ class SUNATWebServiceClient:
         logger.info("✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas")
     
     def send_bill(self, zip_file_path, filename):
-        """
-        Envía una factura/boleta a SUNAT - VERSIÓN DEMO CON CDR MEJORADO
-        """
+
         try:
             logger.info(f"📤 [DEMO] Enviando documento a SUNAT: {filename}")
             
