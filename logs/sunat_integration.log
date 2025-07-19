@@ -100,3 +100,16 @@ INFO 2025-07-18 22:01:51,587 client Usando ambiente BETA de SUNAT (MODO DEMO)
 INFO 2025-07-18 22:01:51,593 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
 INFO 2025-07-18 22:01:51,596 client 🔌 [DEMO] Probando conexión con SUNAT...
 INFO 2025-07-18 22:01:51,597 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:12:28,569 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:12:28,571 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:12:28,572 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:12:28,572 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:12:39,760 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:12:39,761 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:12:39,763 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:12:39,780 client ✅ [DEMO] Archivo ZIP leído correctamente: 3866 bytes
+INFO 2025-07-19 00:12:39,783 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000004.xml']
+INFO 2025-07-19 00:12:39,783 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:12:39,788 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:12:39,801 client ✅ [DEMO] CDR realista creado: 1157 bytes -> 1544 chars base64
+INFO 2025-07-19 00:12:39,802 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000004.zip
