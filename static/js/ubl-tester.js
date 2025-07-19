@@ -1,4 +1,4 @@
-// static/js/ubl-tester.js - VERSIÓN COMPLETA FINAL CON TODAS LAS FUNCIONALIDADES CORREGIDAS
+// static/js/ubl-tester.js - ARCHIVO COMPLETO ACTUALIZADO CON CORRECCIONES DE RUTAS
 
 // ==================== CONFIGURACIÓN GLOBAL ULTRA-SEGURA ====================
 const API_BASE_URL = '/api';
@@ -838,7 +838,7 @@ function updateFilesViewer(files) {
     }
 }
 
-// ==================== FUNCIONES MEJORADAS PARA ARCHIVOS ====================
+// ==================== FUNCIÓN viewFile COMPLETAMENTE CORREGIDA ====================
 async function viewFile(filePath, fileType) {
     logMessage(`📄 Cargando archivo ${fileType}...`, 'info');
     
@@ -850,28 +850,54 @@ async function viewFile(filePath, fileType) {
             return;
         }
         
-        logMessage(`🔍 Procesando ruta: ${filePath}`, 'info');
+        logMessage(`🔍 Procesando ruta original: ${filePath}`, 'info');
         
-        // ✅ CODIFICACIÓN SEGURA DE LA URL
+        // ✅ NORMALIZACIÓN DE RUTA COMPLETAMENTE NUEVA
+        let cleanPath;
+        try {
+            // Normalizar separadores a forward slash
+            cleanPath = filePath.replace(/\\/g, '/');
+            
+            // Limpiar caracteres problemáticos pero mantener estructura
+            cleanPath = cleanPath.replace(/[^\w\-_./:/]/g, '');
+            
+            // Si es ruta relativa, asegurar que sea correcta
+            if (!cleanPath.includes(':') && !cleanPath.startsWith('/')) {
+                // Es ruta relativa - normalizarla
+                if (!cleanPath.startsWith('xml_files/') && !cleanPath.startsWith('zip_files/') && !cleanPath.startsWith('cdr_files/')) {
+                    // Detectar tipo de archivo y agregar directorio correcto
+                    if (cleanPath.includes('.xml')) {
+                        cleanPath = 'xml_files/' + cleanPath.split('/').pop();
+                    } else if (cleanPath.includes('.zip') && cleanPath.includes('R-')) {
+                        cleanPath = 'cdr_files/' + cleanPath.split('/').pop();
+                    } else if (cleanPath.includes('.zip')) {
+                        cleanPath = 'zip_files/' + cleanPath.split('/').pop();
+                    }
+                }
+            }
+            
+            logMessage(`🔧 Ruta normalizada: ${cleanPath}`, 'info');
+        } catch (pathError) {
+            logMessage(`❌ Error normalizando ruta: ${pathError.message}`, 'error');
+            showErrorModal('Error de Ruta', 'No se pudo procesar la ruta del archivo.');
+            return;
+        }
+        
+        // ✅ CODIFICACIÓN SEGURA DE LA URL - SOLO EL PARÁMETRO
         let encodedPath;
         try {
-            // Limpiar la ruta primero
-            let cleanPath = filePath.replace(/[^\x20-\x7E]/g, ''); // Solo caracteres ASCII imprimibles
-            cleanPath = cleanPath.trim();
-            
-            // Codificar para URL
+            // Codificar solo caracteres especiales, mantener estructura básica
             encodedPath = encodeURIComponent(cleanPath);
-            
-            logMessage(`🔗 Ruta codificada: ${encodedPath}`, 'info');
+            logMessage(`🔗 Parámetro codificado: ${encodedPath}`, 'info');
         } catch (encodeError) {
-            logMessage(`❌ Error codificando ruta: ${encodeError.message}`, 'error');
-            showErrorModal('Error de Codificación', 'No se pudo procesar la ruta del archivo.');
+            logMessage(`❌ Error codificando parámetro: ${encodeError.message}`, 'error');
+            showErrorModal('Error de Codificación', 'No se pudo codificar el parámetro del archivo.');
             return;
         }
         
         // ✅ LLAMADA API MEJORADA
         const url = `${API_BASE_URL}/file-content/?path=${encodedPath}`;
-        logMessage(`📡 Llamando API: ${url}`, 'info');
+        logMessage(`📡 URL completa: ${url}`, 'info');
         
         const response = await fetch(url, {
             method: 'GET',
@@ -884,9 +910,25 @@ async function viewFile(filePath, fileType) {
         logMessage(`📊 Respuesta API: ${response.status} ${response.statusText}`, 'info');
         
         if (!response.ok) {
-            const errorText = await response.text();
-            logMessage(`❌ Error HTTP ${response.status}: ${errorText}`, 'error');
-            showErrorModal('Error del Servidor', `Error ${response.status}: ${response.statusText}`);
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch {
+                errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
+            }
+            
+            logMessage(`❌ Error del servidor: ${JSON.stringify(errorData)}`, 'error');
+            
+            // Mostrar información útil para debugging
+            const debugInfo = `
+                <strong>Información de Debug:</strong><br>
+                Ruta original: ${filePath}<br>
+                Ruta normalizada: ${cleanPath}<br>
+                URL consultada: ${url}<br>
+                Error: ${errorData.message || 'Error desconocido'}
+            `;
+            
+            showErrorModal(`Error Cargando ${fileType}`, debugInfo);
             return;
         }
         
@@ -895,7 +937,7 @@ async function viewFile(filePath, fileType) {
         try {
             data = await response.json();
         } catch (jsonError) {
-            logMessage(`❌ Error parseando JSON: ${jsonError.message}`, 'error');
+            logMessage(`❌ Error parseando respuesta JSON: ${jsonError.message}`, 'error');
             showErrorModal('Error de Respuesta', 'La respuesta del servidor no es válida.');
             return;
         }
@@ -906,12 +948,31 @@ async function viewFile(filePath, fileType) {
             logMessage(`✅ Archivo ${fileType} cargado exitosamente (${formatBytes(data.size || 0)})`, 'success');
         } else {
             logMessage(`❌ Error cargando archivo ${fileType}: ${data.message}`, 'error');
-            showErrorModal('Error Cargando Archivo', data.message || 'Error desconocido');
+            
+            // Información adicional para debugging
+            const debugInfo = `
+                <strong>Error:</strong> ${data.message}<br>
+                ${data.searched_paths ? '<strong>Rutas buscadas:</strong><br>' + data.searched_paths.join('<br>') : ''}
+                ${data.original_path ? '<br><strong>Ruta original:</strong> ' + data.original_path : ''}
+            `;
+            
+            showErrorModal('Error Cargando Archivo', debugInfo);
         }
         
     } catch (error) {
         logMessage(`❌ Error de conexión al cargar archivo ${fileType}: ${error.message}`, 'error');
-        showErrorModal('Error de Conexión', `No se pudo conectar con el servidor: ${error.message}`);
+        
+        const debugInfo = `
+            <strong>Error de Conexión:</strong><br>
+            ${error.message}<br><br>
+            <strong>Ruta solicitada:</strong> ${filePath}<br>
+            <strong>Sugerencias:</strong><br>
+            • Verificar que el servidor esté ejecutándose<br>
+            • Comprobar la configuración de CORS<br>
+            • Revisar los logs del servidor
+        `;
+        
+        showErrorModal('Error de Conexión', debugInfo);
     }
 }
 
@@ -1135,7 +1196,12 @@ function showErrorModal(title, message) {
     document.getElementById('errorModalBody').innerHTML = `
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-triangle fs-4"></i>
-            <div class="mt-2">${escapeHtml(message)}</div>
+            <div class="mt-2">${message}</div>
+        </div>
+        <div class="mt-3">
+            <small class="text-muted">
+                <strong>Ayuda:</strong> Si el problema persiste, revisar los logs del servidor o contactar al administrador.
+            </small>
         </div>`;
     
     if (typeof bootstrap !== 'undefined') {
