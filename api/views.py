@@ -1,4 +1,4 @@
-# api/views.py - ARCHIVO COMPLETO CORREGIDO CON SOLUCIONES DE RUTAS
+# api/views.py - ARCHIVO COMPLETO CORREGIDO CON TODAS LAS FUNCIONES FALTANTES
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -579,6 +579,701 @@ def create_invoice_test_scenarios(request):
             'message': f'Error interno: {str(e)}',
             'suggestion': 'Revise la configuración de la base de datos y los settings'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ======================================================
+# FUNCIONES ESPECÍFICAS DE ESCENARIOS - NUEVAS FUNCIONES
+# ======================================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_scenario_gravada(request):
+    """Crea escenario específico: Boleta con Venta Gravada (IGV 18%)"""
+    try:
+        company, customer = _get_or_create_test_entities()
+        
+        with transaction.atomic():
+            next_number = _get_next_invoice_number(company, '03', 'B001')
+            
+            invoice = Invoice.objects.create(
+                company=company,
+                customer=customer,
+                document_type='03',
+                series='B001',
+                number=next_number,
+                issue_date=date.today(),
+                currency_code='PEN',
+                operation_type_code='0101',
+                total_amount=Decimal('0.00'),
+                observations='ESCENARIO 1: VENTA GRAVADA CON IGV 18%'
+            )
+            
+            # Crear producto gravado
+            product = _get_or_create_product(company, 'GRAV001', 'PRODUCTO GRAVADO CON IGV', Decimal('85.00'), 'S')
+            
+            # Línea gravada
+            line_value = Decimal('2.00') * Decimal('85.00')  # 170.00
+            igv_amount = line_value * Decimal('0.18')  # 30.60
+            
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=1,
+                product=product,
+                product_code=product.code,
+                description=product.description,
+                quantity=Decimal('2.00'),
+                unit_code='NIU',
+                unit_price=Decimal('85.00'),
+                line_extension_amount=line_value,
+                tax_category_code='S',
+                igv_rate=Decimal('18.00'),
+                igv_amount=igv_amount
+            )
+            
+            invoice.calculate_totals()
+            
+            InvoicePayment.objects.create(
+                invoice=invoice,
+                payment_means_code='009',
+                payment_amount=invoice.total_amount
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Escenario Gravada creado exitosamente',
+            'scenario': 'gravada',
+            'invoice_id': invoice.id,
+            'invoice_reference': invoice.full_document_name,
+            'totals': {
+                'subtotal': float(invoice.total_taxed_amount),
+                'igv': float(invoice.igv_amount),
+                'total': float(invoice.total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando escenario gravada: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_scenario_exonerada(request):
+    """Crea escenario específico: Boleta con Venta Exonerada (Sin IGV)"""
+    try:
+        company, customer = _get_or_create_test_entities()
+        
+        with transaction.atomic():
+            next_number = _get_next_invoice_number(company, '03', 'B001')
+            
+            invoice = Invoice.objects.create(
+                company=company,
+                customer=customer,
+                document_type='03',
+                series='B001',
+                number=next_number,
+                issue_date=date.today(),
+                currency_code='PEN',
+                operation_type_code='0101',
+                total_amount=Decimal('0.00'),
+                observations='ESCENARIO 2: VENTA EXONERADA SIN IGV'
+            )
+            
+            # Crear producto exonerado
+            product = _get_or_create_product(company, 'EXON001', 'PRODUCTO EXONERADO DE IGV', Decimal('120.00'), 'E')
+            
+            # Línea exonerada
+            line_value = Decimal('1.00') * Decimal('120.00')  # 120.00
+            
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=1,
+                product=product,
+                product_code=product.code,
+                description=product.description,
+                quantity=Decimal('1.00'),
+                unit_code='NIU',
+                unit_price=Decimal('120.00'),
+                line_extension_amount=line_value,
+                tax_category_code='E',
+                tax_exemption_reason_code='20',
+                igv_rate=Decimal('0.00'),
+                igv_amount=Decimal('0.00')
+            )
+            
+            invoice.calculate_totals()
+            
+            InvoicePayment.objects.create(
+                invoice=invoice,
+                payment_means_code='009',
+                payment_amount=invoice.total_amount
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Escenario Exonerada creado exitosamente',
+            'scenario': 'exonerada',
+            'invoice_id': invoice.id,
+            'invoice_reference': invoice.full_document_name,
+            'totals': {
+                'subtotal': float(invoice.total_exempt_amount),
+                'igv': float(invoice.igv_amount),
+                'total': float(invoice.total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando escenario exonerada: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_scenario_percepcion(request):
+    """Crea escenario específico: Boleta con Percepción (2% sobre servicios)"""
+    try:
+        company, customer = _get_or_create_test_entities()
+        
+        with transaction.atomic():
+            next_number = _get_next_invoice_number(company, '03', 'B001')
+            
+            invoice = Invoice.objects.create(
+                company=company,
+                customer=customer,
+                document_type='03',
+                series='B001',
+                number=next_number,
+                issue_date=date.today(),
+                currency_code='PEN',
+                operation_type_code='0101',
+                total_amount=Decimal('0.00'),
+                observations='ESCENARIO 3: SERVICIO CON PERCEPCION 2%'
+            )
+            
+            # Crear servicio con percepción
+            product = _get_or_create_product(company, 'SERV002', 'SERVICIO PROFESIONAL CON PERCEPCION', Decimal('1500.00'), 'S', 'ZZ')
+            
+            # Línea de servicio
+            line_value = Decimal('1.00') * Decimal('1500.00')  # 1500.00
+            igv_amount = line_value * Decimal('0.18')  # 270.00
+            
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=1,
+                product=product,
+                product_code=product.code,
+                description=product.description,
+                quantity=Decimal('1.00'),
+                unit_code='ZZ',
+                unit_price=Decimal('1500.00'),
+                line_extension_amount=line_value,
+                tax_category_code='S',
+                igv_rate=Decimal('18.00'),
+                igv_amount=igv_amount
+            )
+            
+            # Configurar percepción
+            invoice.perception_percentage = Decimal('2.00')
+            invoice.perception_base_amount = line_value
+            invoice.perception_amount = invoice.perception_base_amount * (invoice.perception_percentage / 100)
+            invoice.perception_code = '51'
+            
+            invoice.calculate_totals()
+            
+            InvoicePayment.objects.create(
+                invoice=invoice,
+                payment_means_code='009',
+                payment_amount=invoice.total_amount
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Escenario Percepción creado exitosamente',
+            'scenario': 'percepcion',
+            'invoice_id': invoice.id,
+            'invoice_reference': invoice.full_document_name,
+            'totals': {
+                'subtotal': float(invoice.total_taxed_amount),
+                'igv': float(invoice.igv_amount),
+                'percepcion': float(invoice.perception_amount),
+                'total': float(invoice.total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando escenario percepción: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_scenario_gratuito(request):
+    """Crea escenario específico: Boleta con Producto Gratuito"""
+    try:
+        company, customer = _get_or_create_test_entities()
+        
+        with transaction.atomic():
+            next_number = _get_next_invoice_number(company, '03', 'B001')
+            
+            invoice = Invoice.objects.create(
+                company=company,
+                customer=customer,
+                document_type='03',
+                series='B001',
+                number=next_number,
+                issue_date=date.today(),
+                currency_code='PEN',
+                operation_type_code='0101',
+                total_amount=Decimal('0.00'),
+                observations='ESCENARIO 4: PRODUCTO GRATUITO - MUESTRA'
+            )
+            
+            # Crear producto gratuito
+            product = _get_or_create_product(company, 'GRAT001', 'PRODUCTO GRATUITO - MUESTRA', Decimal('0.00'), 'Z')
+            
+            # Línea gratuita
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=1,
+                product=product,
+                product_code=product.code,
+                description=product.description + ' - PROMOCIONAL',
+                quantity=Decimal('3.00'),
+                unit_code='NIU',
+                unit_price=Decimal('0.00'),
+                line_extension_amount=Decimal('0.00'),
+                reference_price=Decimal('25.00'),  # Precio de referencia
+                tax_category_code='Z',
+                igv_rate=Decimal('0.00'),
+                igv_amount=Decimal('0.00')
+            )
+            
+            invoice.calculate_totals()
+            
+            InvoicePayment.objects.create(
+                invoice=invoice,
+                payment_means_code='009',
+                payment_amount=invoice.total_amount
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Escenario Gratuito creado exitosamente',
+            'scenario': 'gratuito',
+            'invoice_id': invoice.id,
+            'invoice_reference': invoice.full_document_name,
+            'totals': {
+                'subtotal': float(invoice.total_free_amount),
+                'igv': float(invoice.igv_amount),
+                'total': float(invoice.total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando escenario gratuito: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_scenario_bonificacion(request):
+    """Crea escenario específico: Boleta con Bonificación"""
+    try:
+        company, customer = _get_or_create_test_entities()
+        
+        with transaction.atomic():
+            next_number = _get_next_invoice_number(company, '03', 'B001')
+            
+            invoice = Invoice.objects.create(
+                company=company,
+                customer=customer,
+                document_type='03',
+                series='B001',
+                number=next_number,
+                issue_date=date.today(),
+                currency_code='PEN',
+                operation_type_code='0101',
+                total_amount=Decimal('0.00'),
+                observations='ESCENARIO 5: VENTA CON BONIFICACION'
+            )
+            
+            # Producto normal
+            product1 = _get_or_create_product(company, 'NORM001', 'PRODUCTO NORMAL', Decimal('50.00'), 'S')
+            
+            # Línea normal (gravada)
+            line1_value = Decimal('2.00') * Decimal('50.00')  # 100.00
+            line1_igv = line1_value * Decimal('0.18')  # 18.00
+            
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=1,
+                product=product1,
+                product_code=product1.code,
+                description=product1.description,
+                quantity=Decimal('2.00'),
+                unit_code='NIU',
+                unit_price=Decimal('50.00'),
+                line_extension_amount=line1_value,
+                tax_category_code='S',
+                igv_rate=Decimal('18.00'),
+                igv_amount=line1_igv
+            )
+            
+            # Producto bonificación
+            product2 = _get_or_create_product(company, 'BONI001', 'PRODUCTO BONIFICACION', Decimal('0.00'), 'Z')
+            
+            # Línea bonificación (gratuita)
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                line_number=2,
+                product=product2,
+                product_code=product2.code,
+                description=product2.description + ' - POR COMPRA',
+                quantity=Decimal('1.00'),
+                unit_code='NIU',
+                unit_price=Decimal('0.00'),
+                line_extension_amount=Decimal('0.00'),
+                reference_price=Decimal('50.00'),  # Precio de referencia
+                tax_category_code='Z',
+                igv_rate=Decimal('0.00'),
+                igv_amount=Decimal('0.00')
+            )
+            
+            invoice.calculate_totals()
+            
+            InvoicePayment.objects.create(
+                invoice=invoice,
+                payment_means_code='009',
+                payment_amount=invoice.total_amount
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Escenario Bonificación creado exitosamente',
+            'scenario': 'bonificacion',
+            'invoice_id': invoice.id,
+            'invoice_reference': invoice.full_document_name,
+            'totals': {
+                'subtotal_gravado': float(invoice.total_taxed_amount),
+                'subtotal_gratuito': float(invoice.total_free_amount),
+                'igv': float(invoice.igv_amount),
+                'total': float(invoice.total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando escenario bonificación: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_all_test_scenarios(request):
+    """Crea todos los escenarios de prueba de una vez"""
+    try:
+        results = []
+        scenarios = ['gravada', 'exonerada', 'percepcion', 'gratuito', 'bonificacion']
+        
+        for scenario in scenarios:
+            try:
+                if scenario == 'gravada':
+                    response = create_scenario_gravada(request)
+                elif scenario == 'exonerada':
+                    response = create_scenario_exonerada(request)
+                elif scenario == 'percepcion':
+                    response = create_scenario_percepcion(request)
+                elif scenario == 'gratuito':
+                    response = create_scenario_gratuito(request)
+                elif scenario == 'bonificacion':
+                    response = create_scenario_bonificacion(request)
+                
+                if response.status_code == 201:
+                    results.append({
+                        'scenario': scenario,
+                        'status': 'success',
+                        'data': response.data
+                    })
+                else:
+                    results.append({
+                        'scenario': scenario,
+                        'status': 'error',
+                        'message': response.data.get('message', 'Error desconocido')
+                    })
+                    
+            except Exception as e:
+                results.append({
+                    'scenario': scenario,
+                    'status': 'error',
+                    'message': str(e)
+                })
+        
+        successful = sum(1 for r in results if r['status'] == 'success')
+        
+        return Response({
+            'status': 'success',
+            'message': f'{successful} de {len(scenarios)} escenarios creados exitosamente',
+            'results': results,
+            'summary': {
+                'total': len(scenarios),
+                'successful': successful,
+                'failed': len(scenarios) - successful
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creando todos los escenarios: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_test_data(request):
+    """Resetea y limpia datos de prueba"""
+    try:
+        # Obtener empresa de prueba
+        company = Company.objects.filter(ruc=settings.SUNAT_CONFIG['RUC']).first()
+        
+        if not company:
+            return Response({
+                'status': 'warning',
+                'message': 'No hay datos de prueba para limpiar'
+            })
+        
+        # Contar registros antes
+        invoices_count = Invoice.objects.filter(company=company).count()
+        customers_count = Customer.objects.filter(company=company).count()
+        products_count = Product.objects.filter(company=company).count()
+        
+        # Eliminar datos de prueba
+        with transaction.atomic():
+            Invoice.objects.filter(company=company).delete()
+            Customer.objects.filter(company=company).delete()
+            Product.objects.filter(company=company).delete()
+            company.delete()
+        
+        return Response({
+            'status': 'success',
+            'message': 'Datos de prueba eliminados exitosamente',
+            'deleted': {
+                'invoices': invoices_count,
+                'customers': customers_count,
+                'products': products_count,
+                'companies': 1
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reseteando datos de prueba: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def process_complete_scenario(request, scenario_type):
+    """Procesa escenario completo (crear + procesar)"""
+    try:
+        # Crear el escenario
+        if scenario_type == 'gravada':
+            create_response = create_scenario_gravada(request)
+        elif scenario_type == 'exonerada':
+            create_response = create_scenario_exonerada(request)
+        elif scenario_type == 'percepcion':
+            create_scenario_percepcion(request)
+        elif scenario_type == 'gratuito':
+            create_response = create_scenario_gratuito(request)
+        elif scenario_type == 'bonificacion':
+            create_response = create_scenario_bonificacion(request)
+        else:
+            return Response({
+                'status': 'error',
+                'message': f'Tipo de escenario no válido: {scenario_type}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if create_response.status_code != 201:
+            return create_response
+        
+        # Obtener el ID de la factura creada
+        invoice_id = create_response.data['invoice_id']
+        
+        # Procesar flujo completo
+        process_response = process_complete_flow(request, invoice_id)
+        
+        # Combinar resultados
+        return Response({
+            'status': 'success',
+            'message': f'Escenario {scenario_type} creado y procesado',
+            'scenario_type': scenario_type,
+            'creation_result': create_response.data,
+            'processing_result': process_response.data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error procesando escenario completo {scenario_type}: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_scenario_info(request, scenario_type):
+    """Información detallada de escenarios"""
+    scenario_info = {
+        'gravada': {
+            'name': 'Venta Gravada',
+            'description': 'Boleta con productos gravados con IGV 18%',
+            'tax_category': 'S - Gravado',
+            'igv_rate': '18%',
+            'characteristics': [
+                'Productos sujetos a IGV',
+                'Aplica tarifa del 18%',
+                'Base imponible = Valor de venta',
+                'Total = Subtotal + IGV'
+            ]
+        },
+        'exonerada': {
+            'name': 'Venta Exonerada',
+            'description': 'Boleta con productos exonerados de IGV',
+            'tax_category': 'E - Exonerado',
+            'igv_rate': '0%',
+            'characteristics': [
+                'Productos exonerados por ley',
+                'No pagan IGV',
+                'Código de exoneración requerido',
+                'Total = Subtotal sin IGV'
+            ]
+        },
+        'percepcion': {
+            'name': 'Venta con Percepción',
+            'description': 'Servicio con percepción del 2%',
+            'tax_category': 'S - Gravado + Percepción',
+            'igv_rate': '18% + 2% percepción',
+            'characteristics': [
+                'Servicios sujetos a percepción',
+                'IGV del 18% + Percepción del 2%',
+                'Aplica a servicios específicos',
+                'Total = Subtotal + IGV + Percepción'
+            ]
+        },
+        'gratuito': {
+            'name': 'Producto Gratuito',
+            'description': 'Productos entregados sin costo',
+            'tax_category': 'Z - Gratuito',
+            'igv_rate': '0%',
+            'characteristics': [
+                'Productos sin costo',
+                'Precio de referencia requerido',
+                'No genera IGV',
+                'Total = 0.00'
+            ]
+        },
+        'bonificacion': {
+            'name': 'Venta con Bonificación',
+            'description': 'Venta normal + producto bonificado',
+            'tax_category': 'S + Z - Mixto',
+            'igv_rate': '18% + 0%',
+            'characteristics': [
+                'Combina productos pagados y gratuitos',
+                'IGV solo sobre productos pagados',
+                'Bonificación con precio de referencia',
+                'Total = Subtotal pagado + IGV'
+            ]
+        }
+    }
+    
+    if scenario_type not in scenario_info:
+        return Response({
+            'status': 'error',
+            'message': f'Tipo de escenario no válido: {scenario_type}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response({
+        'status': 'success',
+        'scenario_type': scenario_type,
+        'info': scenario_info[scenario_type],
+        'available_scenarios': list(scenario_info.keys())
+    })
+
+# =====================================================
+# FUNCIONES AUXILIARES Y DE UTILIDAD
+# =====================================================
+
+def _get_or_create_test_entities():
+    """Obtiene o crea entidades de prueba (empresa y cliente)"""
+    # Empresa
+    company, created = Company.objects.get_or_create(
+        ruc=settings.SUNAT_CONFIG['RUC'],
+        defaults={
+            'business_name': 'EMPRESA DE PRUEBAS SAC',
+            'trade_name': 'EMPRESA PRUEBAS',
+            'address': 'AV. PRINCIPAL 123',
+            'district': 'LIMA',
+            'province': 'LIMA',
+            'department': 'LIMA',
+            'ubigeo': '150101',
+            'certificate_path': settings.SUNAT_CONFIG['CERTIFICATE_PATH'],
+            'certificate_password': settings.SUNAT_CONFIG['CERTIFICATE_PASSWORD']
+        }
+    )
+    
+    # Cliente
+    customer, created = Customer.objects.get_or_create(
+        company=company,
+        document_type='1',
+        document_number='12345678',
+        defaults={
+            'business_name': 'CLIENTE DE PRUEBAS',
+            'address': 'AV. CLIENTE 456',
+            'district': 'LIMA',
+            'province': 'LIMA',
+            'department': 'LIMA'
+        }
+    )
+    
+    return company, customer
+
+def _get_next_invoice_number(company, document_type, series):
+    """Obtiene el siguiente número de factura disponible"""
+    existing_invoice = Invoice.objects.filter(
+        company=company,
+        document_type=document_type,
+        series=series
+    ).order_by('-number').first()
+    
+    return (existing_invoice.number + 1) if existing_invoice else 1
+
+def _get_or_create_product(company, code, description, unit_price, tax_category_code, unit_code='NIU'):
+    """Obtiene o crea un producto de prueba"""
+    product, created = Product.objects.get_or_create(
+        company=company,
+        code=code,
+        defaults={
+            'description': description,
+            'unit_price': unit_price,
+            'is_taxed': tax_category_code == 'S',
+            'is_free': tax_category_code == 'Z',
+            'tax_category_code': tax_category_code,
+            'unit_code': unit_code
+        }
+    )
+    return product
+
+# =====================================================
+# FUNCIONES YA EXISTENTES - MANTENER SIN CAMBIOS
+# =====================================================
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
