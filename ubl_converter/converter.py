@@ -1,4 +1,4 @@
-# ubl_converter/converter.py - VERSIÓN CORREGIDA PARA NOMBRES DE ARCHIVO CONSISTENTES
+# ubl_converter/converter.py - VERSIÓN CORREGIDA PARA RUTAS DE ARCHIVOS
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
@@ -9,11 +9,12 @@ from django.conf import settings
 from django.utils import timezone
 import logging
 from pathlib import Path
+import re
 
 logger = logging.getLogger(__name__)
 
 class UBLConverter:
-    """Convertidor de objetos de negocio a XML UBL 2.1"""
+    """Convertidor de objetos de negocio a XML UBL 2.1 - VERSIÓN CORREGIDA"""
     
     def __init__(self):
         self.namespaces = settings.UBL_CONFIG['NAMESPACES']
@@ -567,10 +568,10 @@ class UBLConverter:
         return '\n'.join(lines)
     
     def save_xml_to_file(self, xml_content, filename):
-        """Guarda el XML en un archivo - VERSIÓN CORREGIDA"""
+        """Guarda el XML en un archivo - VERSIÓN COMPLETAMENTE CORREGIDA"""
         try:
-            # ✅ ASEGURAR NOMBRE DE ARCHIVO CONSISTENTE Y LIMPIO
-            clean_filename = self._clean_filename(filename)
+            # ✅ LIMPIAR NOMBRE DE ARCHIVO CORRECTAMENTE
+            clean_filename = self._clean_filename_properly(filename)
             file_path = Path(settings.MEDIA_ROOT) / 'xml_files' / clean_filename
             
             # Crear directorio si no existe
@@ -588,50 +589,65 @@ class UBLConverter:
             raise
     
     def create_zip_file(self, xml_file_path, zip_filename):
-        """Crea un archivo ZIP con el XML - VERSIÓN CORREGIDA PARA NOMBRES CONSISTENTES"""
+        """Crea un archivo ZIP con el XML - VERSIÓN COMPLETAMENTE CORREGIDA"""
         try:
-            # ✅ LIMPIAR NOMBRES DE ARCHIVO PARA EVITAR ERRORES SUNAT
-            clean_zip_filename = self._clean_filename(zip_filename)
+            # ✅ LIMPIAR NOMBRES DE ARCHIVO CORRECTAMENTE
+            clean_zip_filename = self._clean_filename_properly(zip_filename)
             zip_path = Path(settings.MEDIA_ROOT) / 'zip_files' / clean_zip_filename
             
             # Crear directorio si no existe
             zip_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # ✅ CRÍTICO: Asegurar que el nombre del XML dentro del ZIP coincida con el nombre del ZIP
+            # ✅ CRÍTICO: Nombres consistentes para SUNAT
             xml_path = Path(xml_file_path)
             
-            # Calcular el nombre del XML que debe ir dentro del ZIP
-            # El nombre debe ser consistente con el nombre del ZIP pero con extensión .xml
-            xml_name_in_zip = clean_zip_filename.replace('.zip', '.xml')
+            # El nombre del XML dentro del ZIP debe coincidir exactamente
+            base_name = clean_zip_filename.replace('.zip', '')
+            xml_name_in_zip = f"{base_name}.xml"
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # ✅ USAR EL NOMBRE CORRECTO DENTRO DEL ZIP
+                # ✅ USAR NOMBRE CORRECTO Y CONSISTENTE DENTRO DEL ZIP
                 zipf.write(xml_path, xml_name_in_zip)
             
-            logger.info(f"ZIP creado en: {zip_path}")
+            logger.info(f"ZIP creado exitosamente en: {zip_path}")
             logger.info(f"XML dentro del ZIP: {xml_name_in_zip}")
+            logger.info(f"✅ Nombres consistentes: ZIP={clean_zip_filename}, XML_INTERNO={xml_name_in_zip}")
+            
             return str(zip_path)
             
         except Exception as e:
             logger.error(f"Error creando ZIP: {str(e)}")
             raise
     
-    def _clean_filename(self, filename):
-        """Limpia el nombre de archivo para evitar caracteres problemáticos"""
+    def _clean_filename_properly(self, filename):
+        """Limpia el nombre de archivo correctamente para evitar todos los problemas"""
         if not filename:
             return filename
         
-        # Remover caracteres problemáticos y asegurar que solo contenga ASCII
-        clean_name = filename.encode('ascii', 'ignore').decode('ascii')
+        # ✅ PASO 1: Remover caracteres problemáticos y no-ASCII
+        # Solo mantener letras, números, guiones y puntos
+        clean_name = re.sub(r'[^\w\-_.]', '', filename)
         
-        # Remover espacios y caracteres especiales
-        clean_name = ''.join(c for c in clean_name if c.isalnum() or c in '.-_')
+        # ✅ PASO 2: Asegurar que no tenga espacios
+        clean_name = clean_name.replace(' ', '_')
         
-        # Asegurar que termina con la extensión correcta
+        # ✅ PASO 3: Remover caracteres de control y UTF-8 problemáticos
+        clean_name = ''.join(c for c in clean_name if ord(c) < 128)
+        
+        # ✅ PASO 4: Asegurar que tenga la extensión correcta
         if not clean_name.endswith('.xml') and not clean_name.endswith('.zip'):
             if 'xml' in filename.lower():
                 clean_name += '.xml'
             elif 'zip' in filename.lower():
                 clean_name += '.zip'
         
+        # ✅ PASO 5: Validar que no esté vacío
+        if not clean_name or clean_name in ['.xml', '.zip']:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            if 'xml' in filename.lower():
+                clean_name = f"documento_{timestamp}.xml"
+            else:
+                clean_name = f"documento_{timestamp}.zip"
+        
+        logger.debug(f"Filename cleaned: '{filename}' -> '{clean_name}'")
         return clean_name

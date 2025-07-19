@@ -50,3 +50,23 @@ INFO 2025-07-18 17:07:27,013 client Usando ambiente BETA de SUNAT
 INFO 2025-07-18 17:07:27,946 client Cliente SUNAT inicializado correctamente: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl
 INFO 2025-07-18 17:07:27,953 client Enviando documento a SUNAT: 20000000001-03-B001-00000003.zip
 ERROR 2025-07-18 17:07:28,079 client Error SOAP enviando documento 20000000001-03-B001-00000003.zip: El documento electrónico ingresado ha sido alterado - Detalle: Incorrect reference digest value
+INFO 2025-07-18 17:17:47,178 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-18 17:17:47,179 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-18 17:17:47,180 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-18 17:17:47,181 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-18 17:18:09,138 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-18 17:18:09,138 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-18 17:18:09,138 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000004.zip
+INFO 2025-07-18 17:18:09,138 client ✅ [DEMO] Archivo ZIP leído correctamente: 3862 bytes
+WARNING 2025-07-18 17:18:09,166 client ⚠️ [DEMO] Error creando CDR simulado: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\jhami\\AppData\\Local\\Temp\\tmpkqtq5h1b.zip'
+INFO 2025-07-18 17:18:09,167 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000004.zip
+INFO 2025-07-18 20:56:30,215 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-18 20:56:30,217 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-18 20:56:30,217 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-18 20:56:30,217 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-18 20:57:13,326 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-18 20:57:13,326 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-18 20:57:13,331 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000001.zip
+INFO 2025-07-18 20:57:13,331 client ✅ [DEMO] Archivo ZIP leído correctamente: 3859 bytes
+WARNING 2025-07-18 20:57:13,346 client ⚠️ [DEMO] Error creando CDR simulado: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\jhami\\AppData\\Local\\Temp\\tmpklggm_ic.zip'
+INFO 2025-07-18 20:57:13,347 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000001.zip
