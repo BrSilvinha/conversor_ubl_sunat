@@ -1,4 +1,4 @@
-# sunat_integration/client.py - VERSIÓN DEMO CON SIMULACIÓN EXITOSA
+# sunat_integration/client.py - VERSIÓN DEMO CON CDRs CORREGIDOS
 import os
 import base64
 import zipfile
@@ -7,11 +7,12 @@ from django.conf import settings
 import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import uuid
 
 logger = logging.getLogger(__name__)
 
 class SUNATWebServiceClient:
-    """Cliente para los Web Services de SUNAT - VERSIÓN DEMO SIMULADA"""
+    """Cliente para los Web Services de SUNAT - VERSIÓN DEMO CON CDRs MEJORADOS"""
     
     def __init__(self):
         self.config = settings.SUNAT_CONFIG
@@ -33,12 +34,12 @@ class SUNATWebServiceClient:
     
     def send_bill(self, zip_file_path, filename):
         """
-        Envía una factura/boleta a SUNAT - VERSIÓN DEMO SIMULADA
+        Envía una factura/boleta a SUNAT - VERSIÓN DEMO CON CDR MEJORADO
         """
         try:
             logger.info(f"📤 [DEMO] Enviando documento a SUNAT: {filename}")
             
-            # ✅ SIMULACIÓN: Leer archivo ZIP para validar que existe
+            # ✅ VALIDAR QUE EL ARCHIVO EXISTE
             if not os.path.exists(zip_file_path):
                 return {
                     'status': 'error',
@@ -46,26 +47,60 @@ class SUNATWebServiceClient:
                     'filename': filename
                 }
             
-            with open(zip_file_path, 'rb') as f:
-                zip_content = f.read()
+            # ✅ LEER Y VALIDAR CONTENIDO DEL ZIP
+            try:
+                with open(zip_file_path, 'rb') as f:
+                    zip_content = f.read()
+                
+                # Verificar que el ZIP no esté vacío
+                if len(zip_content) < 50:  # ZIP mínimo válido
+                    logger.warning(f"⚠️ [DEMO] Archivo ZIP sospechosamente pequeño: {len(zip_content)} bytes")
+                
+                logger.info(f"✅ [DEMO] Archivo ZIP leído correctamente: {len(zip_content)} bytes")
+                
+                # ✅ VALIDAR ESTRUCTURA DEL ZIP
+                with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                    files_in_zip = zip_ref.namelist()
+                    logger.info(f"📁 [DEMO] Archivos en ZIP: {files_in_zip}")
+                    
+                    if not files_in_zip:
+                        logger.warning(f"⚠️ [DEMO] ZIP está vacío")
+                    
+            except zipfile.BadZipFile:
+                logger.error(f"❌ [DEMO] Archivo ZIP corrupto: {zip_file_path}")
+                return {
+                    'status': 'error',
+                    'error_message': f'Archivo ZIP corrupto: {filename}',
+                    'filename': filename
+                }
             
-            logger.info(f"✅ [DEMO] Archivo ZIP leído correctamente: {len(zip_content)} bytes")
+            # ✅ CREAR CDR EXITOSO Y REALISTA
+            cdr_content = self._create_realistic_cdr(filename)
             
-            # ✅ SIMULACIÓN: Crear CDR exitoso
-            cdr_content = self._create_mock_successful_cdr(filename)
+            if not cdr_content:
+                logger.error(f"❌ [DEMO] No se pudo crear CDR para: {filename}")
+                # Aún así devolver éxito pero sin CDR
+                return {
+                    'status': 'success',
+                    'response_type': 'ticket',
+                    'ticket': f"DEMO-{datetime.now().strftime('%Y%m%d%H%M%S')}-{filename[:10]}",
+                    'filename': filename,
+                    'demo_mode': True,
+                    'note': 'CDR se generará cuando se consulte el estado'
+                }
             
             logger.info(f"🎉 [DEMO] Documento enviado exitosamente: {filename}")
             
             return {
                 'status': 'success',
                 'response_type': 'cdr',
-                'cdr_content': cdr_content,  # CDR simulado en base64
+                'cdr_content': cdr_content,  # CDR mejorado en base64
                 'cdr_info': {
                     'response_code': '0',
-                    'response_description': 'La Factura numero {}, ha sido aceptada'.format(filename.replace('.zip', '')),
+                    'response_description': f'La {self._get_document_type_name(filename)} numero {filename.replace(".zip", "")}, ha sido aceptada',
                     'document_reference': filename.replace('.zip', ''),
                     'issue_date': datetime.now().strftime('%Y-%m-%d'),
-                    'notes': ['ACEPTADA POR SUNAT (SIMULADO)']
+                    'notes': ['ACEPTADA POR SUNAT (SIMULADO)', 'DOCUMENTO PROCESADO CORRECTAMENTE']
                 },
                 'filename': filename,
                 'demo_mode': True
@@ -75,7 +110,7 @@ class SUNATWebServiceClient:
             logger.error(f"❌ [DEMO] Error procesando documento {filename}: {str(e)}")
             
             # ✅ INCLUSO EN ERROR, DEVOLVER ÉXITO PARA DEMO
-            cdr_content = self._create_mock_successful_cdr(filename)
+            cdr_content = self._create_realistic_cdr(filename)
             
             return {
                 'status': 'success',
@@ -95,13 +130,22 @@ class SUNATWebServiceClient:
     
     def send_summary(self, zip_file_path, filename):
         """
-        Envía resumen diario - VERSIÓN DEMO SIMULADA
+        Envía resumen diario - VERSIÓN DEMO MEJORADA
         """
         try:
             logger.info(f"📤 [DEMO] Enviando resumen a SUNAT: {filename}")
             
-            # ✅ SIMULACIÓN: Generar ticket exitoso
-            mock_ticket = f"DEMO-{datetime.now().strftime('%Y%m%d%H%M%S')}-{filename[:10]}"
+            # ✅ VALIDAR ARCHIVO
+            if not os.path.exists(zip_file_path):
+                return {
+                    'status': 'error',
+                    'error_message': f'Archivo ZIP no encontrado: {zip_file_path}',
+                    'filename': filename
+                }
+            
+            # ✅ GENERAR TICKET REALISTA
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            mock_ticket = f"{timestamp}-{str(uuid.uuid4())[:8].upper()}"
             
             logger.info(f"🎫 [DEMO] Resumen enviado exitosamente: {filename}, Ticket: {mock_ticket}")
             
@@ -110,7 +154,8 @@ class SUNATWebServiceClient:
                 'response_type': 'ticket',
                 'ticket': mock_ticket,
                 'filename': filename,
-                'demo_mode': True
+                'demo_mode': True,
+                'message': 'Resumen enviado correctamente. Use el ticket para consultar el estado.'
             }
                 
         except Exception as e:
@@ -130,13 +175,13 @@ class SUNATWebServiceClient:
     
     def get_status(self, ticket):
         """
-        Consulta el estado de procesamiento usando ticket - VERSIÓN DEMO
+        Consulta el estado de procesamiento usando ticket - VERSIÓN DEMO MEJORADA
         """
         try:
             logger.info(f"🔍 [DEMO] Consultando estado de ticket: {ticket}")
             
-            # ✅ SIMULACIÓN: Siempre devolver completado exitosamente
-            cdr_content = self._create_mock_successful_cdr(ticket)
+            # ✅ SIMULAR PROCESAMIENTO COMPLETADO
+            cdr_content = self._create_realistic_cdr(ticket)
             
             result = {
                 'status': 'success',
@@ -167,14 +212,14 @@ class SUNATWebServiceClient:
     
     def get_status_cdr(self, ruc, document_type, series, number):
         """
-        Consulta CDR de un documento específico - VERSIÓN DEMO
+        Consulta CDR de un documento específico - VERSIÓN DEMO MEJORADA
         """
         try:
             logger.info(f"🔍 [DEMO] Consultando CDR: {ruc}-{document_type}-{series}-{number}")
             
-            # ✅ SIMULACIÓN: Siempre encontrar documento y devolver CDR exitoso
+            # ✅ CREAR IDENTIFICADOR DEL DOCUMENTO
             document_id = f"{ruc}-{document_type}-{series}-{number}"
-            cdr_content = self._create_mock_successful_cdr(document_id)
+            cdr_content = self._create_realistic_cdr(document_id)
             
             result = {
                 'status': 'success',
@@ -205,77 +250,166 @@ class SUNATWebServiceClient:
                 'original_error': str(e)
             }
     
-    def _create_mock_successful_cdr(self, reference):
-        """Crea un CDR simulado exitoso en formato ZIP/Base64"""
+    def _create_realistic_cdr(self, reference):
+        """Crea un CDR realista y funcional en formato ZIP/Base64"""
         try:
-            # ✅ CREAR XML CDR SIMULADO
-            cdr_xml = self._generate_mock_cdr_xml(reference)
+            logger.info(f"🏗️ [DEMO] Creando CDR realista para: {reference}")
             
-            # ✅ CREAR ZIP CON EL CDR
-            with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_zip:
-                with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    # Nombre del CDR dentro del ZIP
-                    cdr_filename = f"R-{reference.replace('.zip', '')}.xml"
+            # ✅ CREAR XML CDR COMPLETO Y VÁLIDO
+            cdr_xml = self._generate_complete_cdr_xml(reference)
+            
+            # ✅ CREAR ZIP VÁLIDO CON ESTRUCTURA CORRECTA
+            try:
+                # Usar archivo temporal con contexto seguro
+                with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_zip_file:
+                    temp_zip_path = temp_zip_file.name
+                
+                # Crear ZIP con estructura correcta
+                with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zipf:
+                    # Nombre del CDR dentro del ZIP (formato estándar SUNAT)
+                    base_name = reference.replace('.zip', '').replace('DEMO-', '')
+                    cdr_filename = f"R-{base_name}.xml"
+                    
+                    # Escribir XML al ZIP con codificación UTF-8
                     zipf.writestr(cdr_filename, cdr_xml.encode('utf-8'))
+                    
+                    logger.info(f"📁 [DEMO] Archivo CDR en ZIP: {cdr_filename}")
                 
                 # Leer el ZIP creado
-                temp_zip.seek(0)
-                with open(temp_zip.name, 'rb') as f:
+                with open(temp_zip_path, 'rb') as f:
                     zip_content = f.read()
                 
                 # Limpiar archivo temporal
-                os.unlink(temp_zip.name)
+                try:
+                    os.unlink(temp_zip_path)
+                except:
+                    pass  # Ignorar errores de limpieza
+                
+                # Validar que el ZIP no esté vacío
+                if len(zip_content) < 50:
+                    logger.error(f"❌ [DEMO] ZIP CDR creado está vacío")
+                    return None
                 
                 # Convertir a base64
                 cdr_base64 = base64.b64encode(zip_content).decode('utf-8')
                 
-                logger.info(f"✅ [DEMO] CDR simulado creado exitosamente para: {reference}")
+                logger.info(f"✅ [DEMO] CDR realista creado: {len(zip_content)} bytes -> {len(cdr_base64)} chars base64")
                 return cdr_base64
                 
+            except Exception as zip_error:
+                logger.error(f"❌ [DEMO] Error creando ZIP CDR: {zip_error}")
+                return None
+                
         except Exception as e:
-            logger.warning(f"⚠️ [DEMO] Error creando CDR simulado: {str(e)}")
-            # Devolver un base64 mínimo válido
-            return base64.b64encode(b"CDR SIMULADO DEMO").decode('utf-8')
+            logger.error(f"❌ [DEMO] Error creando CDR realista: {str(e)}")
+            return None
     
-    def _generate_mock_cdr_xml(self, reference):
-        """Genera un XML CDR simulado"""
-        timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    def _generate_complete_cdr_xml(self, reference):
+        """Genera un XML CDR completo y válido según estándares SUNAT"""
+        timestamp = datetime.now()
+        date_str = timestamp.strftime('%Y-%m-%d')
+        time_str = timestamp.strftime('%H:%M:%S')
         
+        # Limpiar referencia
+        clean_reference = reference.replace('.zip', '').replace('DEMO-', '')
+        
+        # XML CDR completo con todos los elementos requeridos
         cdr_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <ar:ApplicationResponse xmlns:ar="urn:oasis:names:specification:ubl:schema:xsd:ApplicationResponse-2"
                        xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
-                       xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+                       xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="urn:oasis:names:specification:ubl:schema:xsd:ApplicationResponse-2 UBL-ApplicationResponse-2.1.xsd">
     <cbc:UBLVersionID>2.0</cbc:UBLVersionID>
     <cbc:CustomizationID>1.0</cbc:CustomizationID>
-    <cbc:ID>DEMO-CDR-{reference}</cbc:ID>
-    <cbc:IssueDate>{timestamp[:10]}</cbc:IssueDate>
-    <cbc:IssueTime>{timestamp[11:]}</cbc:IssueTime>
+    <cbc:ProfileID>urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo06</cbc:ProfileID>
+    <cbc:ID>DEMO-CDR-{timestamp.strftime('%Y%m%d%H%M%S')}</cbc:ID>
+    <cbc:UUID>{str(uuid.uuid4())}</cbc:UUID>
+    <cbc:IssueDate>{date_str}</cbc:IssueDate>
+    <cbc:IssueTime>{time_str}</cbc:IssueTime>
+    <cbc:ResponseDate>{date_str}</cbc:ResponseDate>
+    <cbc:ResponseTime>{time_str}</cbc:ResponseTime>
+    
     <cac:SenderParty>
         <cac:PartyIdentification>
-            <cbc:ID>20100070970</cbc:ID>
+            <cbc:ID schemeID="6">20100070970</cbc:ID>
         </cac:PartyIdentification>
         <cac:PartyName>
-            <cbc:Name>SUNAT</cbc:Name>
+            <cbc:Name><![CDATA[SUNAT]]></cbc:Name>
         </cac:PartyName>
+        <cac:PartyLegalEntity>
+            <cbc:RegistrationName><![CDATA[SUPERINTENDENCIA NACIONAL DE ADUANAS Y DE ADMINISTRACION TRIBUTARIA - SUNAT]]></cbc:RegistrationName>
+        </cac:PartyLegalEntity>
     </cac:SenderParty>
+    
     <cac:ReceiverParty>
         <cac:PartyIdentification>
-            <cbc:ID>{self.ruc}</cbc:ID>
+            <cbc:ID schemeID="6">{self.ruc}</cbc:ID>
         </cac:PartyIdentification>
+        <cac:PartyLegalEntity>
+            <cbc:RegistrationName><![CDATA[EMPRESA DE PRUEBAS SAC]]></cbc:RegistrationName>
+        </cac:PartyLegalEntity>
     </cac:ReceiverParty>
+    
     <cac:DocumentResponse>
         <cac:Response>
-            <cbc:ReferenceID>{reference.replace('.zip', '')}</cbc:ReferenceID>
-            <cbc:ResponseCode>0</cbc:ResponseCode>
-            <cbc:Description>La Factura ha sido aceptada</cbc:Description>
+            <cbc:ReferenceID>{clean_reference}</cbc:ReferenceID>
+            <cbc:ResponseCode listAgencyName="PE:SUNAT" listName="Tipo de Respuesta" listURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo09">0</cbc:ResponseCode>
+            <cbc:Description><![CDATA[{self._get_acceptance_message(clean_reference)}]]></cbc:Description>
         </cac:Response>
+        
         <cac:DocumentReference>
-            <cbc:ID>{reference.replace('.zip', '')}</cbc:ID>
+            <cbc:ID>{clean_reference}</cbc:ID>
+            <cbc:DocumentTypeCode listAgencyName="PE:SUNAT" listName="Tipo de Documento" listURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01">{self._extract_document_type(clean_reference)}</cbc:DocumentTypeCode>
+            <cbc:DocumentType><![CDATA[{self._get_document_type_name(clean_reference)}]]></cbc:DocumentType>
         </cac:DocumentReference>
     </cac:DocumentResponse>
+    
+    <!-- Información adicional del procesamiento -->
+    <cac:AdditionalDocumentResponse>
+        <cbc:ID>01</cbc:ID>
+        <cbc:ResponseCode listAgencyName="PE:SUNAT">0</cbc:ResponseCode>
+        <cbc:Description><![CDATA[DOCUMENTO PROCESADO CORRECTAMENTE]]></cbc:Description>
+    </cac:AdditionalDocumentResponse>
+    
+    <!-- Metadata del procesamiento -->
+    <cac:ProcessingInformation>
+        <cbc:ProcessingDate>{date_str}</cbc:ProcessingDate>
+        <cbc:ProcessingTime>{time_str}</cbc:ProcessingTime>
+        <cbc:ProcessingID>DEMO-PROC-{timestamp.strftime('%Y%m%d%H%M%S')}</cbc:ProcessingID>
+        <cbc:Description><![CDATA[Procesado en modo demostración]]></cbc:Description>
+    </cac:ProcessingInformation>
 </ar:ApplicationResponse>"""
         
         return cdr_xml
+    
+    def _get_document_type_name(self, reference):
+        """Obtiene el nombre del tipo de documento"""
+        if '-01-' in reference:
+            return 'FACTURA'
+        elif '-03-' in reference:
+            return 'BOLETA DE VENTA'
+        elif '-07-' in reference:
+            return 'NOTA DE CREDITO'
+        elif '-08-' in reference:
+            return 'NOTA DE DEBITO'
+        else:
+            return 'DOCUMENTO'
+    
+    def _extract_document_type(self, reference):
+        """Extrae el tipo de documento de la referencia"""
+        try:
+            parts = reference.split('-')
+            if len(parts) >= 2:
+                return parts[1]  # El tipo de documento está en la segunda posición
+        except:
+            pass
+        return '01'  # Default a factura
+    
+    def _get_acceptance_message(self, reference):
+        """Genera mensaje de aceptación apropiado"""
+        doc_type = self._get_document_type_name(reference)
+        return f"La {doc_type} numero {reference}, ha sido aceptada"
     
     def test_connection(self):
         """Prueba la conexión con SUNAT - VERSIÓN DEMO SIEMPRE EXITOSA"""
