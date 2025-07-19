@@ -113,3 +113,136 @@ INFO 2025-07-19 00:12:39,783 client 🏗️ [DEMO] Creando CDR realista para: 20
 INFO 2025-07-19 00:12:39,788 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000004.xml
 INFO 2025-07-19 00:12:39,801 client ✅ [DEMO] CDR realista creado: 1157 bytes -> 1544 chars base64
 INFO 2025-07-19 00:12:39,802 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:19:04,917 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:19:04,918 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:19:04,919 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:19:04,919 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:19:19,481 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:19:19,482 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:19:19,482 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:19:19,483 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:26:28,660 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:26:28,660 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:26:28,663 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000001.zip
+INFO 2025-07-19 00:26:28,684 client ✅ [DEMO] Archivo ZIP leído correctamente: 3859 bytes
+INFO 2025-07-19 00:26:28,685 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000001.xml']
+INFO 2025-07-19 00:26:28,686 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000001.zip
+INFO 2025-07-19 00:26:28,687 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000001.xml
+INFO 2025-07-19 00:26:28,702 client ✅ [DEMO] CDR realista creado: 1158 bytes -> 1544 chars base64
+INFO 2025-07-19 00:26:28,703 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000001.zip
+INFO 2025-07-19 00:32:28,275 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:32:28,276 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:32:28,276 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:32:28,277 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:33:11,842 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:33:11,843 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:33:11,846 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000002.zip
+INFO 2025-07-19 00:33:11,880 client ✅ [DEMO] Archivo ZIP leído correctamente: 3865 bytes
+INFO 2025-07-19 00:33:11,881 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000002.xml']
+INFO 2025-07-19 00:33:11,881 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000002.zip
+INFO 2025-07-19 00:33:11,885 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000002.xml
+INFO 2025-07-19 00:33:11,912 client ✅ [DEMO] CDR realista creado: 1158 bytes -> 1544 chars base64
+INFO 2025-07-19 00:33:11,914 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000002.zip
+INFO 2025-07-19 00:33:14,844 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:33:14,846 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:33:14,846 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:33:14,846 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:33:28,970 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:33:28,970 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:33:28,972 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:33:28,972 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:34:43,801 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:34:43,802 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:34:43,803 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:34:43,804 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:35:29,419 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:35:29,419 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:35:29,420 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:35:29,420 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:36:15,722 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:36:15,722 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:36:15,724 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000003.zip
+INFO 2025-07-19 00:36:15,738 client ✅ [DEMO] Archivo ZIP leído correctamente: 3863 bytes
+INFO 2025-07-19 00:36:15,739 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000003.xml']
+INFO 2025-07-19 00:36:15,739 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000003.zip
+INFO 2025-07-19 00:36:15,740 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000003.xml
+INFO 2025-07-19 00:36:15,753 client ✅ [DEMO] CDR realista creado: 1157 bytes -> 1544 chars base64
+INFO 2025-07-19 00:36:15,754 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000003.zip
+INFO 2025-07-19 00:36:34,857 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:36:34,860 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:36:34,861 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:36:34,861 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:36:51,562 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:36:51,563 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:36:51,564 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:36:51,564 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:37:00,957 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:37:00,959 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:37:00,960 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:37:00,961 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:37:20,394 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:37:20,395 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:37:20,396 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:37:20,397 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:37:56,116 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:37:56,117 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:37:56,119 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:37:56,119 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:38:21,319 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:38:21,320 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:38:21,321 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:38:21,321 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:38:28,981 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:38:28,982 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:38:28,985 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000005.zip
+INFO 2025-07-19 00:38:28,986 client ✅ [DEMO] Archivo ZIP leído correctamente: 3866 bytes
+INFO 2025-07-19 00:38:28,987 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000005.xml']
+INFO 2025-07-19 00:38:28,988 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000005.zip
+INFO 2025-07-19 00:38:28,990 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000005.xml
+INFO 2025-07-19 00:38:29,014 client ✅ [DEMO] CDR realista creado: 1160 bytes -> 1548 chars base64
+INFO 2025-07-19 00:38:29,014 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000005.zip
+INFO 2025-07-19 00:38:31,416 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:38:31,417 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:38:31,418 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:38:31,418 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:38:41,651 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:38:41,652 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:38:41,655 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:38:41,669 client ✅ [DEMO] Archivo ZIP leído correctamente: 3865 bytes
+INFO 2025-07-19 00:38:41,670 client 📁 [DEMO] Archivos en ZIP: ['20000000001-03-B001-00000004.xml']
+INFO 2025-07-19 00:38:41,671 client 🏗️ [DEMO] Creando CDR realista para: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:38:41,673 client 📁 [DEMO] Archivo CDR en ZIP: R-20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:38:41,687 client ✅ [DEMO] CDR realista creado: 1159 bytes -> 1548 chars base64
+INFO 2025-07-19 00:38:41,687 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:38:45,400 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:38:45,401 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:38:45,402 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:38:45,403 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:39:29,225 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:39:29,226 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:39:29,227 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:39:29,227 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:39:35,871 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:39:35,872 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:39:35,872 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:39:35,872 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:40:07,704 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:40:07,704 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:40:07,705 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:40:07,706 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:41:45,898 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:41:45,898 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:41:45,899 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:41:45,900 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:41:50,171 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:41:50,171 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:41:50,173 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:41:50,174 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:49:44,942 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:49:44,943 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:49:44,944 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:49:44,945 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-19 00:49:56,429 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-19 00:49:56,429 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-19 00:49:56,430 client 🔌 [DEMO] Probando conexión con SUNAT...
+INFO 2025-07-19 00:49:56,433 client ✅ [DEMO] Conexión exitosa simulada con SUNAT

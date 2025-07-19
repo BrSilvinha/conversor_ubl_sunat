@@ -75,3 +75,51 @@ DEBUG 2025-07-19 00:12:37,910 converter Filename cleaned: '20000000001-03-B001-0
 INFO 2025-07-19 00:12:37,931 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000004.zip
 INFO 2025-07-19 00:12:37,931 converter XML dentro del ZIP: 20000000001-03-B001-00000004.xml
 INFO 2025-07-19 00:12:37,932 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000004.zip, XML_INTERNO=20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:26:09,000 converter Iniciando conversión UBL para 20000000001-03-B001-00000001
+INFO 2025-07-19 00:26:09,016 converter Conversión UBL completada para 20000000001-03-B001-00000001
+DEBUG 2025-07-19 00:26:09,016 converter Filename cleaned: '20000000001-03-B001-00000001.xml' -> '20000000001-03-B001-00000001.xml'
+INFO 2025-07-19 00:26:09,019 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000001.xml
+DEBUG 2025-07-19 00:26:15,428 converter Filename cleaned: '20000000001-03-B001-00000001.zip' -> '20000000001-03-B001-00000001.zip'
+INFO 2025-07-19 00:26:15,451 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000001.zip
+INFO 2025-07-19 00:26:15,452 converter XML dentro del ZIP: 20000000001-03-B001-00000001.xml
+INFO 2025-07-19 00:26:15,452 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000001.zip, XML_INTERNO=20000000001-03-B001-00000001.xml
+INFO 2025-07-19 00:32:42,287 converter Iniciando conversión UBL para 20000000001-03-B001-00000002
+INFO 2025-07-19 00:32:42,296 converter Conversión UBL completada para 20000000001-03-B001-00000002
+DEBUG 2025-07-19 00:32:42,297 converter Filename cleaned: '20000000001-03-B001-00000002.xml' -> '20000000001-03-B001-00000002.xml'
+INFO 2025-07-19 00:32:42,300 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000002.xml
+DEBUG 2025-07-19 00:33:07,286 converter Filename cleaned: '20000000001-03-B001-00000002.zip' -> '20000000001-03-B001-00000002.zip'
+INFO 2025-07-19 00:33:07,317 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000002.zip
+INFO 2025-07-19 00:33:07,319 converter XML dentro del ZIP: 20000000001-03-B001-00000002.xml
+INFO 2025-07-19 00:33:07,319 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000002.zip, XML_INTERNO=20000000001-03-B001-00000002.xml
+INFO 2025-07-19 00:35:37,451 converter Iniciando conversión UBL para 20000000001-03-B001-00000003
+INFO 2025-07-19 00:35:37,464 converter Conversión UBL completada para 20000000001-03-B001-00000003
+DEBUG 2025-07-19 00:35:37,465 converter Filename cleaned: '20000000001-03-B001-00000003.xml' -> '20000000001-03-B001-00000003.xml'
+INFO 2025-07-19 00:35:37,467 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000003.xml
+DEBUG 2025-07-19 00:35:54,146 converter Filename cleaned: '20000000001-03-B001-00000003.zip' -> '20000000001-03-B001-00000003.zip'
+INFO 2025-07-19 00:35:54,155 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000003.zip
+INFO 2025-07-19 00:35:54,156 converter XML dentro del ZIP: 20000000001-03-B001-00000003.xml
+INFO 2025-07-19 00:35:54,156 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000003.zip, XML_INTERNO=20000000001-03-B001-00000003.xml
+INFO 2025-07-19 00:37:42,891 converter Iniciando conversión UBL para 20000000001-03-B001-00000004
+INFO 2025-07-19 00:37:42,901 converter Conversión UBL completada para 20000000001-03-B001-00000004
+DEBUG 2025-07-19 00:37:42,902 converter Filename cleaned: '20000000001-03-B001-00000004.xml' -> '20000000001-03-B001-00000004.xml'
+INFO 2025-07-19 00:37:42,903 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:38:15,155 converter Iniciando conversión UBL para 20000000001-03-B001-00000005
+INFO 2025-07-19 00:38:15,168 converter Conversión UBL completada para 20000000001-03-B001-00000005
+DEBUG 2025-07-19 00:38:15,169 converter Filename cleaned: '20000000001-03-B001-00000005.xml' -> '20000000001-03-B001-00000005.xml'
+INFO 2025-07-19 00:38:15,172 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000005.xml
+DEBUG 2025-07-19 00:38:26,691 converter Filename cleaned: '20000000001-03-B001-00000005.zip' -> '20000000001-03-B001-00000005.zip'
+INFO 2025-07-19 00:38:26,713 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000005.zip
+INFO 2025-07-19 00:38:26,713 converter XML dentro del ZIP: 20000000001-03-B001-00000005.xml
+INFO 2025-07-19 00:38:26,713 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000005.zip, XML_INTERNO=20000000001-03-B001-00000005.xml
+DEBUG 2025-07-19 00:38:38,430 converter Filename cleaned: '20000000001-03-B001-00000004.zip' -> '20000000001-03-B001-00000004.zip'
+INFO 2025-07-19 00:38:38,448 converter ZIP creado exitosamente en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\zip_files\20000000001-03-B001-00000004.zip
+INFO 2025-07-19 00:38:38,449 converter XML dentro del ZIP: 20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:38:38,449 converter ✅ Nombres consistentes: ZIP=20000000001-03-B001-00000004.zip, XML_INTERNO=20000000001-03-B001-00000004.xml
+INFO 2025-07-19 00:39:26,024 converter Iniciando conversión UBL para 20000000001-03-B001-00000006
+INFO 2025-07-19 00:39:26,035 converter Conversión UBL completada para 20000000001-03-B001-00000006
+DEBUG 2025-07-19 00:39:26,036 converter Filename cleaned: '20000000001-03-B001-00000006.xml' -> '20000000001-03-B001-00000006.xml'
+INFO 2025-07-19 00:39:26,039 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000006.xml
+INFO 2025-07-19 00:40:02,900 converter Iniciando conversión UBL para 20000000001-03-B001-00000003
+INFO 2025-07-19 00:40:02,910 converter Conversión UBL completada para 20000000001-03-B001-00000003
+DEBUG 2025-07-19 00:40:02,911 converter Filename cleaned: '20000000001-03-B001-00000003.xml' -> '20000000001-03-B001-00000003.xml'
+INFO 2025-07-19 00:40:02,912 converter XML guardado en: C:\Users\jhami\OneDrive\Documentos\proyectos\conversor_ubl_sunat\media\xml_files\20000000001-03-B001-00000003.xml

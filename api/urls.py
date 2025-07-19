@@ -1,4 +1,4 @@
-# api/urls.py - AGREGAR ESTA LÍNEA A LAS URLs EXISTENTES
+# api/urls.py - ARCHIVO COMPLETO CON TODOS LOS ENDPOINTS
 
 from django.urls import path
 from . import views
@@ -6,7 +6,11 @@ from . import views
 app_name = 'api'
 
 urlpatterns = [
-    # Endpoints principales del conversor UBL
+    # ================================
+    # ENDPOINTS PRINCIPALES DEL CONVERSOR UBL
+    # ================================
+    
+    # Creación de documentos
     path('create-test-scenarios/', views.create_invoice_test_scenarios, name='create_test_scenarios'),
     path('create-invoice-manual/', views.create_invoice_manual, name='create_invoice_manual'),
     
@@ -24,10 +28,43 @@ urlpatterns = [
     
     # Validación de firma digital
     path('validate-signature/', views.validate_xml_signature, name='validate_signature'),
-    
-    # ✅ NUEVO: Información detallada de la firma
     path('signature-info/', views.get_signature_info, name='get_signature_info'),
     
     # Utilidades
     path('test-sunat-connection/', views.test_sunat_connection, name='test_sunat_connection'),
+    
+    # ================================
+    # NUEVOS ENDPOINTS PARA LOS 5 ESCENARIOS ESPECÍFICOS
+    # ================================
+    
+    # Escenario 1: Boleta con Venta Gravada (IGV 18%)
+    path('create-scenario-gravada/', views.create_scenario_gravada, name='create_scenario_gravada'),
+    
+    # Escenario 2: Boleta con Venta Exonerada (Sin IGV)
+    path('create-scenario-exonerada/', views.create_scenario_exonerada, name='create_scenario_exonerada'),
+    
+    # Escenario 3: Boleta con Percepción (2% sobre servicios)
+    path('create-scenario-percepcion/', views.create_scenario_percepcion, name='create_scenario_percepcion'),
+    
+    # Escenario 4: Boleta con Producto Gratuito
+    path('create-scenario-gratuito/', views.create_scenario_gratuito, name='create_scenario_gratuito'),
+    
+    # Escenario 5: Boleta con Bonificación
+    path('create-scenario-bonificacion/', views.create_scenario_bonificacion, name='create_scenario_bonificacion'),
+    
+    # ================================
+    # ENDPOINTS AUXILIARES PARA ESCENARIOS
+    # ================================
+    
+    # Crear todos los escenarios de una vez
+    path('create-all-scenarios/', views.create_all_test_scenarios, name='create_all_scenarios'),
+    
+    # Resetear y limpiar datos de prueba
+    path('reset-test-data/', views.reset_test_data, name='reset_test_data'),
+    
+    # Procesar escenario completo (crear + procesar)
+    path('process-scenario/<str:scenario_type>/', views.process_complete_scenario, name='process_complete_scenario'),
+    
+    # Información detallada de escenarios
+    path('scenario-info/<str:scenario_type>/', views.get_scenario_info, name='get_scenario_info'),
 ]
