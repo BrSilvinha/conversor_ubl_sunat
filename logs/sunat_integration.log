@@ -90,3 +90,9 @@ INFO 2025-07-18 21:54:08,493 client Usando ambiente BETA de SUNAT (MODO DEMO)
 INFO 2025-07-18 21:54:08,499 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
 INFO 2025-07-18 21:54:08,500 client 🔌 [DEMO] Probando conexión con SUNAT...
 INFO 2025-07-18 21:54:08,500 client ✅ [DEMO] Conexión exitosa simulada con SUNAT
+INFO 2025-07-18 21:54:35,053 client Usando ambiente BETA de SUNAT (MODO DEMO)
+INFO 2025-07-18 21:54:35,053 client ✅ Cliente SUNAT inicializado en MODO DEMO - Todas las respuestas serán exitosas
+INFO 2025-07-18 21:54:35,053 client 📤 [DEMO] Enviando documento a SUNAT: 20000000001-03-B001-00000003.zip
+INFO 2025-07-18 21:54:35,069 client ✅ [DEMO] Archivo ZIP leído correctamente: 3863 bytes
+WARNING 2025-07-18 21:54:35,084 client ⚠️ [DEMO] Error creando CDR simulado: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\jhami\\AppData\\Local\\Temp\\tmp8cjxiq6_.zip'
+INFO 2025-07-18 21:54:35,084 client 🎉 [DEMO] Documento enviado exitosamente: 20000000001-03-B001-00000003.zip
